@@ -8,7 +8,7 @@ let package = Package(
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "CodexTrafficGlass", targets: ["CodexTrafficGlassApp"])
+        .executable(name: "Codexquota", targets: ["CodexTrafficGlassApp"])
     ],
     targets: [
         .target(

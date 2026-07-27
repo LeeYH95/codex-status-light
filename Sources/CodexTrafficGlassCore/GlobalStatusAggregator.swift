@@ -67,7 +67,7 @@ public struct GlobalStatusAggregator: Sendable {
             switch event {
             case .quota, .tokenCount:
                 false
-            case .taskStarted, .reasoning, .functionCall, .functionOutput, .finalAnswer, .taskComplete, .userInputNeeded:
+            case .taskStarted, .reasoning, .functionCall, .functionOutput, .finalAnswer, .taskComplete, .taskAborted, .userInputNeeded:
                 true
             }
         }

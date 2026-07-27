@@ -11,7 +11,22 @@ public struct StatusReducer: Sendable {
 
     public func reduce(current: CodexStatusSnapshot, event: CodexParsedEvent, now: Date = Date()) -> CodexStatusSnapshot {
         var snapshot = current
-        snapshot.updatedAt = event.occurredAt
+        switch event {
+        case .quota:
+            snapshot.quota = QuotaReducer().reduce(current: snapshot.quota, event: event)
+            return refresh(current: snapshot, now: now)
+        case .tokenCount:
+            return refresh(current: snapshot, now: now)
+        case .taskStarted,
+             .reasoning,
+             .functionCall,
+             .functionOutput,
+             .finalAnswer,
+             .taskComplete,
+             .taskAborted,
+             .userInputNeeded:
+            snapshot.updatedAt = event.occurredAt
+        }
 
         switch event {
         case .taskStarted:
@@ -51,10 +66,13 @@ public struct StatusReducer: Sendable {
             snapshot.title = success ? "任务已完成" : "任务失败"
             snapshot.detail = success ? "Codex 已完成任务" : "任务以错误结束"
             snapshot.confidence = 0.95
-        case let .tokenCount(input, output, _):
-            _ = (input, output)
-        case .quota:
-            snapshot.quota = QuotaReducer().reduce(current: snapshot.quota, event: event)
+        case .taskAborted:
+            snapshot.state = .idle
+            snapshot.title = "空闲"
+            snapshot.detail = "任务已取消"
+            snapshot.confidence = 0.8
+        case .tokenCount, .quota:
+            break
         case .userInputNeeded:
             snapshot.state = .waiting
             snapshot.title = "需要人工确认"

@@ -11,7 +11,7 @@ struct CodexTrafficGlassApp: App {
                 .background(
                     FloatingWindowConfigurator(
                         width: store.isExpanded ? CodexPanelMotion.expandedWidth : CodexPanelMotion.collapsedWidth,
-                        height: CodexPanelMotion.windowHeight
+                        height: CodexPanelMotion.quotaReservoirWindowHeight
                     )
                 )
                 .onAppear {

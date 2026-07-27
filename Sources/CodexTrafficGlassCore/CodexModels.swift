@@ -35,22 +35,36 @@ public enum CodexState: Equatable, Sendable {
     }
 }
 
+public struct CodexBankedReset: Equatable, Sendable {
+    public var expiresAt: Date
+
+    public init(expiresAt: Date) {
+        self.expiresAt = expiresAt
+    }
+}
+
 public struct CodexQuota: Equatable, Sendable {
     public var fiveHourRemainingPercent: Double?
     public var weeklyRemainingPercent: Double?
     public var fiveHourResetAt: Date?
     public var weeklyResetAt: Date?
+    public var bankedResetAvailableCount: Int?
+    public var bankedResets: [CodexBankedReset]
 
     public init(
         fiveHourRemainingPercent: Double? = nil,
         weeklyRemainingPercent: Double? = nil,
         fiveHourResetAt: Date? = nil,
-        weeklyResetAt: Date? = nil
+        weeklyResetAt: Date? = nil,
+        bankedResetAvailableCount: Int? = nil,
+        bankedResets: [CodexBankedReset] = []
     ) {
         self.fiveHourRemainingPercent = fiveHourRemainingPercent
         self.weeklyRemainingPercent = weeklyRemainingPercent
         self.fiveHourResetAt = fiveHourResetAt
         self.weeklyResetAt = weeklyResetAt
+        self.bankedResetAvailableCount = bankedResetAvailableCount
+        self.bankedResets = bankedResets
     }
 }
 
@@ -94,6 +108,7 @@ public enum CodexParsedEvent: Equatable, Sendable {
     case functionOutput(text: String, exitCode: Int?, at: Date)
     case finalAnswer(Date)
     case taskComplete(success: Bool, at: Date)
+    case taskAborted(Date)
     case tokenCount(input: Int?, output: Int?, at: Date)
     case quota(fiveHourUsedPercent: Double?, weeklyUsedPercent: Double?, fiveHourResetAt: Date?, weeklyResetAt: Date?, at: Date)
     case userInputNeeded(Date)
@@ -106,6 +121,7 @@ public enum CodexParsedEvent: Equatable, Sendable {
              let .functionOutput(_, _, date),
              let .finalAnswer(date),
              let .taskComplete(_, date),
+             let .taskAborted(date),
              let .tokenCount(_, _, date),
              let .quota(_, _, _, _, date),
              let .userInputNeeded(date):

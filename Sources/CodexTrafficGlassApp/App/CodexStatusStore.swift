@@ -9,10 +9,13 @@ final class CodexStatusStore: ObservableObject {
 
     private let statusReducer: StatusReducer
     private let logReader: CodexSessionLogReader
+    private let appServerRateLimitsReader: CodexAppServerRateLimitsReader
     private var pollingTask: Task<Void, Never>?
     private var quotaReconciliationTask: Task<Void, Never>?
     private var logChangeWatcher: CodexLogChangeWatcher?
     private var isRefreshing = false
+    private var isRefreshingAccountRateLimits = false
+    private var liveAccountQuota: CodexQuota?
 
     init(
         snapshot: CodexStatusSnapshot = CodexStatusSnapshot(
@@ -22,14 +25,16 @@ final class CodexStatusStore: ObservableObject {
             confidence: 0.3,
             updatedAt: nil
         ),
-        isExpanded: Bool = true,
+        isExpanded: Bool = false,
         statusReducer: StatusReducer = StatusReducer(),
-        logReader: CodexSessionLogReader = CodexSessionLogReader()
+        logReader: CodexSessionLogReader = CodexSessionLogReader(),
+        appServerRateLimitsReader: CodexAppServerRateLimitsReader = CodexAppServerRateLimitsReader()
     ) {
         self.snapshot = snapshot
         self.isExpanded = isExpanded
         self.statusReducer = statusReducer
         self.logReader = logReader
+        self.appServerRateLimitsReader = appServerRateLimitsReader
     }
 
     func start() {
@@ -40,6 +45,7 @@ final class CodexStatusStore: ObservableObject {
         let watcher = CodexLogChangeWatcher(logReader: logReader) { [weak self] in
             Task { @MainActor in
                 await self?.refreshFromLogs()
+                await self?.refreshAccountRateLimits()
             }
         }
         logChangeWatcher = watcher
@@ -47,6 +53,7 @@ final class CodexStatusStore: ObservableObject {
 
         pollingTask = Task { [weak self] in
             await self?.refreshFromLogs()
+            await self?.refreshAccountRateLimits()
 
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -56,14 +63,16 @@ final class CodexStatusStore: ObservableObject {
 
         quotaReconciliationTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 60_000_000_000)
-                await self?.refreshQuotaFromLogs()
+                try? await Task.sleep(nanoseconds: 15_000_000_000)
+                await self?.refreshAccountRateLimits()
             }
         }
     }
 
     func apply(event: CodexParsedEvent) {
-        snapshot = statusReducer.reduce(current: snapshot, event: event)
+        snapshot = applyingLiveQuotaPriority(
+            to: statusReducer.reduce(current: snapshot, event: event)
+        )
     }
 
     func refreshFromLogs() async {
@@ -93,14 +102,14 @@ final class CodexStatusStore: ObservableObject {
                 QuotaReducer().reduce(current: snapshot.quota, event: $0)
             } ?? snapshot.quota
 
-            snapshot = CodexStatusSnapshot(
+            snapshot = applyingLiveQuotaPriority(to: CodexStatusSnapshot(
                 state: refreshResult.hasSessionFile ? .idle : .unknown,
                 title: refreshResult.hasSessionFile ? "空闲" : "未连接",
                 detail: refreshResult.hasSessionFile ? "暂无正在进行的 Codex 任务" : "打开 Codex 后开始追踪",
                 confidence: refreshResult.hasSessionFile ? 0.55 : 0.2,
                 updatedAt: nil,
                 quota: quota
-            )
+            ))
             return
         }
 
@@ -111,7 +120,9 @@ final class CodexStatusStore: ObservableObject {
             nextSnapshot = statusReducer.reduce(current: nextSnapshot, event: latestQuotaEvent)
         }
 
-        snapshot = statusReducer.refresh(current: nextSnapshot)
+        snapshot = applyingLiveQuotaPriority(
+            to: statusReducer.refresh(current: nextSnapshot)
+        )
         logChangeWatcher?.refreshWatchedFiles()
     }
 
@@ -125,7 +136,48 @@ final class CodexStatusStore: ObservableObject {
             return
         }
 
-        snapshot = statusReducer.reduce(current: snapshot, event: latestQuotaEvent)
+        snapshot = applyingLiveQuotaPriority(
+            to: statusReducer.reduce(current: snapshot, event: latestQuotaEvent)
+        )
+    }
+
+    func refreshAccountRateLimits() async {
+        guard !isRefreshingAccountRateLimits else {
+            return
+        }
+
+        isRefreshingAccountRateLimits = true
+        defer {
+            isRefreshingAccountRateLimits = false
+        }
+
+        let reader = appServerRateLimitsReader
+        let accountQuota = await Task.detached(priority: .utility) {
+            reader.readQuota()
+        }.value
+        guard let accountQuota else {
+            return
+        }
+
+        liveAccountQuota = CodexQuotaSourceMerger.resolving(
+            logQuota: liveAccountQuota ?? CodexQuota(),
+            liveQuota: accountQuota
+        )
+        snapshot = applyingLiveQuotaPriority(to: snapshot)
+    }
+
+    private func applyingLiveQuotaPriority(to snapshot: CodexStatusSnapshot) -> CodexStatusSnapshot {
+        CodexStatusSnapshot(
+            state: snapshot.state,
+            title: snapshot.title,
+            detail: snapshot.detail,
+            confidence: snapshot.confidence,
+            updatedAt: snapshot.updatedAt,
+            quota: CodexQuotaSourceMerger.resolving(
+                logQuota: snapshot.quota,
+                liveQuota: liveAccountQuota
+            )
+        )
     }
 
     deinit {

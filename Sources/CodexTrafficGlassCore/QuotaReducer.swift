@@ -12,7 +12,9 @@ public struct QuotaReducer: Sendable {
             fiveHourRemainingPercent: remaining(fromUsedPercent: fiveHourUsed) ?? current.fiveHourRemainingPercent,
             weeklyRemainingPercent: remaining(fromUsedPercent: weeklyUsed) ?? current.weeklyRemainingPercent,
             fiveHourResetAt: fiveHourResetAt ?? current.fiveHourResetAt,
-            weeklyResetAt: weeklyResetAt ?? current.weeklyResetAt
+            weeklyResetAt: weeklyResetAt ?? current.weeklyResetAt,
+            bankedResetAvailableCount: current.bankedResetAvailableCount,
+            bankedResets: current.bankedResets
         )
     }
 

@@ -91,6 +91,130 @@ private func runSelfTests() throws {
     try expect(quota.fiveHourRemainingPercent == 83, "5-hour quota remaining should be 83")
     try expect(quota.weeklyRemainingPercent == 58, "weekly quota remaining should be 58")
 
+    let staleLogQuota = CodexQuota(
+        weeklyRemainingPercent: 99,
+        weeklyResetAt: Date(timeIntervalSince1970: 1_784_764_800),
+        bankedResetAvailableCount: 0
+    )
+    let liveAccountQuota = CodexQuota(
+        weeklyRemainingPercent: 70,
+        weeklyResetAt: Date(timeIntervalSince1970: 1_785_283_200),
+        bankedResetAvailableCount: 3,
+        bankedResets: [CodexBankedReset(expiresAt: Date(timeIntervalSince1970: 1_785_542_400))]
+    )
+    let resolvedQuota = CodexQuotaSourceMerger.resolving(
+        logQuota: staleLogQuota,
+        liveQuota: liveAccountQuota
+    )
+    try expect(
+        resolvedQuota.weeklyRemainingPercent == 70,
+        "live app-server weekly quota should win over stale session-log quota"
+    )
+    try expect(
+        resolvedQuota.weeklyResetAt == Date(timeIntervalSince1970: 1_785_283_200),
+        "live app-server reset time should win over stale session-log reset time"
+    )
+    try expect(
+        resolvedQuota.bankedResetAvailableCount == 3,
+        "live app-server reset credits should win over stale session-log quota"
+    )
+
+    let bankedResetQuota = CodexQuota(
+        bankedResets: [
+            CodexBankedReset(expiresAt: Date(timeIntervalSince1970: 1_782_900_000)),
+            CodexBankedReset(expiresAt: Date(timeIntervalSince1970: 1_782_500_000))
+        ]
+    )
+    try expect(
+        BankedResetPresentation.summaryLabel(for: bankedResetQuota) == "重置次数 2 次",
+        "banked reset entry should show total reset count"
+    )
+    try expect(
+        BankedResetPresentation.sortedResets(for: bankedResetQuota).map(\.expiresAt)
+            == [
+                Date(timeIntervalSince1970: 1_782_500_000),
+                Date(timeIntervalSince1970: 1_782_900_000)
+            ],
+        "banked reset details should be sorted by earliest expiration first"
+    )
+    try expect(
+        BankedResetPresentation.earliestExpirationLabel(
+            for: bankedResetQuota,
+            now: Date(timeIntervalSince1970: 1_782_068_800)
+        ) == "最早 5 天后过期",
+        "banked reset details should call out the earliest expiration"
+    )
+    try expect(
+        BankedResetPresentation.summaryLabel(for: CodexQuota()) == "重置次数 0 次",
+        "empty banked reset entry should make the zero state explicit"
+    )
+
+    try expect(
+        WeeklyQuotaPresentation.remainingBand(for: 60) == .ample,
+        "60 percent remaining should use the ample quota band"
+    )
+    try expect(
+        WeeklyQuotaPresentation.remainingBand(for: 59.9) == .caution,
+        "remaining quota below 60 percent should use the caution band"
+    )
+    try expect(
+        WeeklyQuotaPresentation.remainingBand(for: 25) == .caution,
+        "25 percent remaining should remain in the caution band"
+    )
+    try expect(
+        WeeklyQuotaPresentation.remainingBand(for: 24.9) == .critical,
+        "remaining quota below 25 percent should use the critical band"
+    )
+
+    let weeklyResetAt = Date(timeIntervalSince1970: 604_800)
+    let cycleMidpoint = Date(timeIntervalSince1970: 302_400)
+    try expect(
+        WeeklyQuotaPresentation.cycleElapsedProgress(resetAt: weeklyResetAt, now: cycleMidpoint) == 0.5,
+        "reset timeline should show elapsed weekly-cycle time"
+    )
+    try expect(
+        WeeklyQuotaPresentation.resetCountdownLabel(resetAt: weeklyResetAt, now: cycleMidpoint) == "3天12小时",
+        "reset countdown should show remaining whole days and hours"
+    )
+    try expect(
+        WeeklyQuotaPresentation.resetCountdownLabel(
+            resetAt: Date(timeIntervalSince1970: 10),
+            now: Date(timeIntervalSince1970: 11)
+        ) == "等待额度刷新",
+        "expired reset data should wait for a quota refresh instead of looking imminent"
+    )
+    try expect(
+        WeeklyQuotaPresentation.nextHourlyRefresh(after: Date(timeIntervalSince1970: 45_296))
+            == Date(timeIntervalSince1970: 46_800),
+        "reset timeline should refresh at the next wall-clock hour"
+    )
+
+    let appServerRateLimitJSON = Data(#"{"id":2,"result":{"rateLimitResetCredits":{"availableCount":3,"credits":[{"id":"RateLimitResetCredit_1","resetType":"codexRateLimits","status":"available","grantedAt":1782519396,"expiresAt":1785111396,"title":"Full reset","description":"Thanks for using Codex! You've been granted one free rate limit reset."},{"id":"RateLimitResetCredit_2","resetType":"codexRateLimits","status":"available","grantedAt":1782933283,"expiresAt":1785525283,"title":"Full reset","description":"Thanks for using Codex! You've been granted one free rate limit reset."},{"id":"RateLimitResetCredit_3","resetType":"codexRateLimits","status":"available","grantedAt":1783966227,"expiresAt":1786558227,"title":"Full reset","description":"Thanks for using Codex! You've been granted one free rate limit reset."}]},"rateLimits":{"limitId":"codex","primary":{"usedPercent":32,"windowDurationMins":10080,"resetsAt":1785287297},"secondary":null}}}"#.utf8)
+    let appServerQuota = try CodexAppServerRateLimitsParser().parseQuota(from: appServerRateLimitJSON)
+    try expect(
+        appServerQuota.bankedResetAvailableCount == 3,
+        "app-server rate limit response should parse available reset count"
+    )
+    try expect(
+        appServerQuota.bankedResets.map(\.expiresAt) == [
+            Date(timeIntervalSince1970: 1_785_111_396),
+            Date(timeIntervalSince1970: 1_785_525_283),
+            Date(timeIntervalSince1970: 1_786_558_227)
+        ],
+        "app-server rate limit response should parse reset credit expiration times"
+    )
+    try expect(
+        BankedResetPresentation.summaryLabel(for: appServerQuota) == "重置次数 3 次",
+        "banked reset summary should prefer app-server available count"
+    )
+
+    let appServerCountOnlyJSON = Data(#"{"id":2,"result":{"rateLimitResetCredits":{"availableCount":3,"credits":null}}}"#.utf8)
+    let countOnlyQuota = try CodexAppServerRateLimitsParser().parseQuota(from: appServerCountOnlyJSON)
+    try expect(
+        countOnlyQuota.bankedResetAvailableCount == 3 && countOnlyQuota.bankedResets.isEmpty,
+        "app-server rate limit response should keep count when detail rows are unavailable"
+    )
+
     let currentQuota = CodexQuota(fiveHourRemainingPercent: 64, weeklyRemainingPercent: 20)
     let unchangedQuota = QuotaReducer().reduce(
         current: currentQuota,
@@ -213,6 +337,46 @@ private func runSelfTests() throws {
     try expect(globalStalled.state == .stalled, "global status should prioritize long-stalled active sessions")
     try expect(globalStalled.title == "需要检查", "global stalled title should be user friendly")
 
+    let abortedTurnStartedLine = #"{"timestamp":"2026-06-30T09:47:27.861Z","type":"event_msg","payload":{"type":"task_started","started_at":1782812847.861,"turn_id":"turn-1"}}"#
+    let abortedTurnEndedLine = #"{"timestamp":"2026-06-30T09:48:21.443Z","type":"event_msg","payload":{"type":"turn_aborted","completed_at":1782812901.443,"reason":"user_cancelled","turn_id":"turn-1"}}"#
+    let abortedTurnEvents = [abortedTurnStartedLine, abortedTurnEndedLine].compactMap { parser.parse($0) }
+    let globalAbortedTurn = GlobalStatusAggregator(
+        statusReducer: StatusReducer(processingAfter: 300, stallAfter: 900),
+        now: Date(timeIntervalSince1970: 1782814000),
+        monitoringHorizon: 6 * 60 * 60
+    ).reduce(
+        current: .empty,
+        sessionEvents: [abortedTurnEvents]
+    )
+    try expect(globalAbortedTurn.state == .idle, "aborted turns should not become stalled")
+    try expect(globalAbortedTurn.title == "空闲", "aborted turns should leave the global lamp idle")
+
+    let quotaShouldNotRefreshStatusTime = statusReducer.reduce(
+        current: CodexStatusSnapshot(
+            state: .stalled,
+            title: "需要检查",
+            detail: "已 20 分钟没有新动态",
+            confidence: 0.65,
+            updatedAt: Date(timeIntervalSince1970: 100)
+        ),
+        event: .quota(
+            fiveHourUsedPercent: 20,
+            weeklyUsedPercent: 10,
+            fiveHourResetAt: nil,
+            weeklyResetAt: nil,
+            at: Date(timeIntervalSince1970: 1_000)
+        ),
+        now: Date(timeIntervalSince1970: 1_000)
+    )
+    try expect(
+        quotaShouldNotRefreshStatusTime.updatedAt == Date(timeIntervalSince1970: 100),
+        "quota updates should not make stale status look fresh"
+    )
+    try expect(
+        quotaShouldNotRefreshStatusTime.quota.fiveHourRemainingPercent == 80,
+        "quota updates should still refresh quota values"
+    )
+
     let oldAbandonedSession = GlobalStatusAggregator(
         statusReducer: StatusReducer(processingAfter: 300, stallAfter: 900),
         now: Date(timeIntervalSince1970: 30_000),
@@ -286,9 +450,36 @@ private func runSelfTests() throws {
     try expect(CodexPanelMotion.duration == 0.24, "panel motion should stay smooth but quick")
     try expect(CodexPanelMotion.revealOffsetX == -14, "panel should reveal with a subtle leading offset")
     try expect(CodexPanelMotion.collapsedScale == 0.985, "panel scale should be subtle")
+    try expect(CodexPanelMotion.hoverCollapseDelay == 0.12, "hover collapse should wait briefly to prevent pointer handoff flicker")
     try expect(CodexPanelMotion.expandedWidth == 500, "expanded window should fit the full panel")
     try expect(CodexPanelMotion.collapsedWidth == 126, "collapsed window should only cover the lamp and expand handle")
-    try expect(CodexPanelMotion.windowHeight == 264, "window height should preserve panel bottom space")
+    try expect(CodexPanelMotion.panelBottomBreathingRoom == 12, "panel should reserve 12 points below quota cards")
+    try expect(CodexPanelMotion.windowHeight == 276, "window height should include panel bottom breathing room")
+    try expect(CodexPanelVisualMetrics.statusCardCornerRadius == 16, "status card should use a tighter 16 point corner radius")
+    try expect(CodexPanelVisualMetrics.quotaCardCornerRadius == 14, "quota cards should use a tighter 14 point corner radius")
+    try expect(CodexPanelVisualMetrics.resetCountCornerRadius == 12, "reset count entry should no longer be a full capsule")
+    try expect(CodexPanelVisualMetrics.resetDetailsCornerRadius == 16, "reset details popover should use a tighter corner radius")
+    try expect(
+        WeeklyQuotaPresentation.normalizedRemainingProgress(for: 12) == 0.12,
+        "weekly quota gauge should convert 12 percent remaining to 0.12 progress"
+    )
+    try expect(
+        WeeklyQuotaPresentation.normalizedRemainingProgress(for: 120) == 1,
+        "weekly quota gauge progress should clamp values above 100 percent"
+    )
+    try expect(CodexPanelVisualMetrics.quotaGaugeDiameter == 63, "quota gauge should use the approved 63 point diameter")
+    try expect(CodexPanelVisualMetrics.quotaGaugeSpacing == 14, "quota gauge should keep 14 points away from the traffic light")
+    try expect(CodexPanelMotion.collapsedWindowHeight == 318, "collapsed window should fit the detached quota gauge")
+    try expect(CodexPanelVisualMetrics.quotaReservoirSize == 46, "quota reservoir should use the approved 46 point size")
+    try expect(CodexPanelVisualMetrics.quotaReservoirCornerRadius == 16, "quota reservoir should use the approved 16 point corner radius")
+    try expect(
+        CodexPanelVisualMetrics.trafficLightWithReservoirHeight == 280,
+        "traffic light and reservoir stack should reserve a fixed 280 point height"
+    )
+    try expect(
+        CodexPanelMotion.quotaReservoirWindowHeight == CodexPanelMotion.collapsedWindowHeight,
+        "expanded and collapsed states should use the same reservoir window height"
+    )
 
     let tempDirectory = FileManager.default.temporaryDirectory
         .appendingPathComponent("CodexTrafficGlassSelfTests-\(UUID().uuidString)")

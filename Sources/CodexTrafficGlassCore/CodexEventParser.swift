@@ -49,6 +49,8 @@ public struct CodexEventParser: Sendable {
             return .finalAnswer(at)
         case "task_complete", "session_complete":
             return .taskComplete(success: bool(payload["success"]) ?? true, at: at)
+        case "turn_aborted", "task_aborted", "session_aborted":
+            return .taskAborted(at)
         case "token_count", "tokens":
             return .tokenCount(input: int(payload["input"]), output: int(payload["output"]), at: at)
         case "quota", "rate_limit", "usage":
@@ -135,6 +137,8 @@ public struct CodexEventParser: Sendable {
             return .reasoning(occurredAt)
         case "task_complete", "session_complete":
             return .taskComplete(success: bool(payload["success"]) ?? true, at: occurredAt)
+        case "turn_aborted", "task_aborted", "session_aborted":
+            return .taskAborted(occurredAt)
         case "approval_requested", "user_input_needed":
             return .userInputNeeded(occurredAt)
         default:
