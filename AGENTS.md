@@ -69,6 +69,51 @@ Codex Quota 是一个 macOS 悬浮 HUD：以红绿灯、任务状态和每周额
    - 右侧/底部是否因窗口 frame 改动而溢出；
    - hover 展开与自动收起是否稳定。
 
+## 版本发布与恢复
+
+### 版本规则
+
+- 正式版本使用 [Semantic Versioning](https://semver.org/)：`vMAJOR.MINOR.PATCH`。
+  - `MAJOR`：不兼容的用户体验、数据格式或公开接口变化。
+  - `MINOR`：向后兼容的新功能或明显的体验升级。
+  - `PATCH`：向后兼容的 bug fix、视觉修复或小范围优化。
+- `v1.0.0` 是首个正式版本。后续版本必须递增，不能复用历史 tag。
+- 每个正式版本必须同时拥有：合并至 `main` 的 commit、不可变的 Git tag、GitHub Release 和清晰的发布说明。
+
+### 发布流程
+
+1. 确认工作区干净、全部验证通过，并先推送包含变更的分支。
+2. 通过 Pull Request 合并到 `main`；不要从未合并的功能分支直接发布。
+3. 从 `main` 创建 GitHub Release / tag。Release 标题格式：`Codex Quota vX.Y.Z`。
+4. 发布说明必须写明本版对应的用户可感知变更，至少按以下结构组织：
+
+   ```md
+   ## 新增（Added）
+   - ...
+
+   ## 调整（Changed）
+   - ...
+
+   ## 修复（Fixed）
+   - ...
+
+   ## 验证（Verification）
+   - CodexTrafficGlassSelfTests 通过
+   - Swift 构建通过
+   ```
+
+   没有内容的栏目可以省略；不要只写“更新”或只列内部文件名。
+
+5. 发布后必须核对：Release 不是 draft / prerelease、tag 指向正确的 `main` commit、远程 tag 已存在。
+6. 已发布的 tag 和 Release 不得删除、移动、强推覆盖或重用。发现问题时发布新的 PATCH 版本，例如 `v1.0.1`，并在说明中标注修复内容。
+
+### 恢复原则
+
+- GitHub Release 的 tag 是可恢复锚点：任意历史版本都可通过 `git fetch --tags` 后从对应 tag 新建恢复分支，例如 `git switch -c restore/v1.0.0 v1.0.0`。
+- 若误删当前项目文件，优先从最近的正式 tag 或 `main` 恢复到新分支，先检查内容再合并；不要直接覆盖现有工作目录。
+- GitHub Release 能防范代码历史中的误删，但**不是账号级灾备**。应额外维护一个不依赖 GitHub 的私有 mirror / bare clone，并定期同步；首次配置或改变备份位置前，先征求用户确认。
+- 禁止对共享远程执行 force push、重写 `main` 历史或删除远程分支 / tag，除非用户明确授权并确认准确目标。
+
 ## 变更边界
 
 - 保留用户已有的未提交改动，不覆盖、不重置、不顺手清理无关代码。
