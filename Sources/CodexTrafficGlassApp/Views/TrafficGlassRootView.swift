@@ -50,9 +50,7 @@ struct TrafficGlassRootView: View {
             )
 
             if store.isExpanded, panelVisible {
-                StatusGlassPanel(snapshot: store.snapshot) {
-                    collapsePanel()
-                }
+                StatusGlassPanel(snapshot: store.snapshot)
                 .transition(.panelReveal)
             }
 
@@ -170,7 +168,10 @@ private struct CollapsedWeeklyQuotaReservoir: View {
                 cornerRadius: CodexPanelVisualMetrics.quotaReservoirCornerRadius,
                 style: .continuous
             )
-            .fill(.ultraThinMaterial)
+            .fill(.clear)
+            .background {
+                GlassBackground(cornerRadius: CodexPanelVisualMetrics.quotaReservoirCornerRadius)
+            }
             .overlay(
                 RoundedRectangle(
                     cornerRadius: CodexPanelVisualMetrics.quotaReservoirCornerRadius,
@@ -179,8 +180,8 @@ private struct CollapsedWeeklyQuotaReservoir: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.80, green: 0.93, blue: 0.98).opacity(0.28),
-                            Color(red: 0.37, green: 0.67, blue: 0.78).opacity(0.10)
+                            Color(red: 0.48, green: 0.66, blue: 0.68).opacity(0.10),
+                            Color(red: 0.008, green: 0.024, blue: 0.030).opacity(CodexSpatialGlassStyle.panelSmokeOpacity)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -204,6 +205,12 @@ private struct CollapsedWeeklyQuotaReservoir: View {
                 .monospacedDigit()
                 .shadow(color: Color.black.opacity(0.44), radius: 3, y: 1)
         }
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: CodexPanelVisualMetrics.quotaReservoirCornerRadius,
+                style: .continuous
+            )
+        )
         .overlay(
             RoundedRectangle(
                 cornerRadius: CodexPanelVisualMetrics.quotaReservoirCornerRadius,
@@ -211,7 +218,7 @@ private struct CollapsedWeeklyQuotaReservoir: View {
             )
             .stroke(
                 LinearGradient(
-                    colors: [.white.opacity(0.42), .white.opacity(0.12)],
+                    colors: [.white.opacity(0.26), .white.opacity(0.07)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
@@ -222,7 +229,7 @@ private struct CollapsedWeeklyQuotaReservoir: View {
             width: CodexPanelVisualMetrics.quotaReservoirSize,
             height: CodexPanelVisualMetrics.quotaReservoirSize
         )
-        .shadow(color: .black.opacity(0.30), radius: 9, y: 5)
+        .shadow(color: .black.opacity(0.38), radius: 9, y: 5)
         .onAppear {
             withAnimation(.linear(duration: 4.8).repeatForever(autoreverses: false)) {
                 wavePhase = .pi * 2
@@ -265,6 +272,8 @@ private struct LiquidWaveShape: Shape {
             x += step
         }
 
+        let finalY = waterline + (sin(.pi * 2 + phase) * amplitude)
+        path.addLine(to: CGPoint(x: rect.maxX, y: finalY))
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
         path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
         path.closeSubpath()
@@ -332,12 +341,18 @@ private struct TrafficLightColumn: View {
         .frame(width: 78, height: 220)
         .background {
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(Color(red: 0.04, green: 0.06, blue: 0.07).opacity(0.82))
+                .fill(.clear)
+                .background {
+                    GlassBackground(cornerRadius: 32)
+                }
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: 32, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [.black.opacity(0.24), .black.opacity(0.08)],
+                                colors: [
+                                    Color(red: 0.26, green: 0.34, blue: 0.35).opacity(0.08),
+                                    Color(red: 0.005, green: 0.014, blue: 0.018).opacity(CodexSpatialGlassStyle.panelSmokeOpacity)
+                                ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -345,14 +360,21 @@ private struct TrafficLightColumn: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 32, style: .continuous)
-                        .stroke(.white.opacity(0.20), lineWidth: 1)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 31, style: .continuous)
-                        .stroke(.black.opacity(0.50), lineWidth: 1)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    .white.opacity(CodexSpatialGlassStyle.highlightOpacity),
+                                    .white.opacity(0.07),
+                                    .black.opacity(0.30)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
                 )
         }
-        .shadow(color: .black.opacity(0.42), radius: 22, y: 14)
+        .shadow(color: .black.opacity(0.38), radius: 22, y: 14)
         .help(presentation.compactLabel)
     }
 }
@@ -368,15 +390,19 @@ private struct LampView: View {
 
         ZStack {
             Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [.black.opacity(0.44), .white.opacity(0.08)],
-                        startPoint: .bottomTrailing,
-                        endPoint: .topLeading
-                    )
+                .fill(Color.black.opacity(0.72))
+                .overlay(
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.white.opacity(0.12), .black.opacity(0.46)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                 )
                 .frame(width: 42, height: 42)
-                .shadow(color: .white.opacity(0.12), radius: 1, x: -1, y: -1)
+                .shadow(color: .white.opacity(0.16), radius: 1, x: -1, y: -1)
 
             Circle()
                 .fill(
@@ -464,7 +490,6 @@ private struct LampView: View {
 
 private struct StatusGlassPanel: View {
     let snapshot: CodexStatusSnapshot
-    let onCollapse: () -> Void
     @State private var resetDetailsVisible = false
     @State private var resetDetailsPinned = false
     @State private var resetDetailsHideTask: Task<Void, Never>?
@@ -498,26 +523,15 @@ private struct StatusGlassPanel: View {
                         handleResetDetailsHover(isHovering)
                     }
 
-                    Button(action: onCollapse) {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                            .frame(width: 28, height: 28)
-                            .contentShape(Circle())
-                            .background(.white.opacity(0.08), in: Circle())
-                            .overlay(Circle().stroke(.white.opacity(0.13), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.white.opacity(0.70))
-                    .help("收起")
                 }
                 .padding(.horizontal, 18)
-                .frame(height: 50)
+                .frame(height: CodexPanelVisualMetrics.headerHeight)
 
                 Rectangle()
                     .fill(.white.opacity(0.08))
-                    .frame(height: 1)
+                    .frame(height: CodexPanelVisualMetrics.dividerHeight)
 
-                VStack(spacing: 5) {
+                VStack(spacing: CodexPanelVisualMetrics.moduleSpacing) {
                     CurrentStatusCard(
                         label: "当前动态",
                         title: presentation.compactLabel,
@@ -527,12 +541,9 @@ private struct StatusGlassPanel: View {
                     )
 
                     WeeklyQuotaCardsRow(quota: snapshot.quota)
-                        .frame(height: 84)
+                        .frame(height: CodexPanelVisualMetrics.quotaCardRowHeight)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-
-                Spacer(minLength: CodexPanelMotion.panelBottomBreathingRoom)
+                .padding(CodexPanelVisualMetrics.panelContentInset)
             }
             .frame(width: 390, height: CodexPanelMotion.expandedPanelHeight)
             .clipped()
@@ -614,10 +625,23 @@ private struct ResetCountPill: View {
             .frame(height: 28)
             .background(
                 RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.resetCountCornerRadius, style: .continuous)
-                    .fill(.white.opacity(isActive ? 0.14 : 0.08))
+                    .fill(Color(red: 0.075, green: 0.09, blue: 0.10).opacity(isActive ? 0.82 : 0.68))
                     .overlay(
                         RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.resetCountCornerRadius, style: .continuous)
-                            .stroke(.white.opacity(isActive ? 0.22 : 0.12), lineWidth: 1)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        .white.opacity(isActive ? 0.09 : 0.045),
+                                        .black.opacity(isActive ? 0.16 : 0.24)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.resetCountCornerRadius, style: .continuous)
+                            .stroke(.white.opacity(isActive ? CodexSpatialGlassStyle.highlightOpacity : 0.14), lineWidth: 1)
                     )
             )
             .contentShape(RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.resetCountCornerRadius, style: .continuous))
@@ -692,12 +716,19 @@ private struct BankedResetDetailsPopover: View {
         .frame(width: 252, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.resetDetailsCornerRadius, style: .continuous)
-                .fill(Color(red: 0.045, green: 0.052, blue: 0.058).opacity(0.98))
+                .fill(.clear)
+                .background {
+                    GlassBackground(cornerRadius: CodexPanelVisualMetrics.resetDetailsCornerRadius)
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.resetDetailsCornerRadius, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [.white.opacity(0.10), .clear, .black.opacity(0.16)],
+                                colors: [
+                                    Color(red: 0.24, green: 0.32, blue: 0.33).opacity(0.07),
+                                    Color(red: 0.01, green: 0.024, blue: 0.028).opacity(CodexSpatialGlassStyle.panelSmokeOpacity),
+                                    .black.opacity(0.14)
+                                ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -705,10 +736,10 @@ private struct BankedResetDetailsPopover: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.resetDetailsCornerRadius, style: .continuous)
-                        .stroke(.white.opacity(0.14), lineWidth: 1)
+                        .stroke(.white.opacity(CodexSpatialGlassStyle.highlightOpacity), lineWidth: 1)
                 )
         )
-        .shadow(color: .black.opacity(0.42), radius: 20, y: 12)
+        .shadow(color: .black.opacity(0.38), radius: 20, y: 12)
     }
 }
 
@@ -786,26 +817,33 @@ private struct EmptyBankedResetState: View {
 
 private struct PanelGlassShape: View {
     var body: some View {
-        RoundedRectangle(cornerRadius: 28, style: .continuous)
-            .fill(Color(red: 0.035, green: 0.045, blue: 0.055).opacity(0.96))
+        RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.outerPanelCornerRadius, style: .continuous)
+            .fill(.clear)
+            .background {
+                GlassBackground(cornerRadius: CodexPanelVisualMetrics.outerPanelCornerRadius)
+            }
             .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.outerPanelCornerRadius, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [.white.opacity(0.08), .clear, .black.opacity(0.26)],
+                            colors: [
+                                Color(red: 0.24, green: 0.32, blue: 0.33).opacity(0.08),
+                                Color(red: 0.008, green: 0.020, blue: 0.024).opacity(CodexSpatialGlassStyle.panelSmokeOpacity),
+                                .black.opacity(0.12)
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.outerPanelCornerRadius, style: .continuous)
                     .stroke(
                         LinearGradient(
                             colors: [
-                                .white.opacity(0.22),
-                                .white.opacity(0.07),
-                                .black.opacity(0.38)
+                                .white.opacity(CodexSpatialGlassStyle.highlightOpacity),
+                                .white.opacity(0.08),
+                                .black.opacity(0.30)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -813,7 +851,7 @@ private struct PanelGlassShape: View {
                         lineWidth: 1
                     )
             )
-            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.outerPanelCornerRadius, style: .continuous))
     }
 }
 
@@ -857,7 +895,7 @@ private struct CurrentStatusCard: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 14)
-        .frame(height: 70)
+        .frame(height: CodexPanelVisualMetrics.statusCardHeight)
         .background(cardBackground)
     }
 
@@ -885,10 +923,23 @@ private struct CurrentStatusCard: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.statusCardCornerRadius, style: .continuous)
-            .fill(Color.black.opacity(0.34))
+            .fill(Color(red: 0.030, green: 0.046, blue: 0.052).opacity(CodexSpatialGlassStyle.cardSmokeOpacity))
             .overlay(
                 RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.statusCardCornerRadius, style: .continuous)
-                    .stroke(.white.opacity(0.08), lineWidth: 1)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(0.035),
+                                Color.black.opacity(0.12)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.statusCardCornerRadius, style: .continuous)
+                    .stroke(.white.opacity(0.13), lineWidth: 1)
             )
     }
 }
@@ -898,8 +949,8 @@ private struct WeeklyQuotaCardsRow: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let availableWidth = max(0, proxy.size.width - 12)
-            HStack(spacing: 12) {
+            let availableWidth = max(0, proxy.size.width - CodexPanelVisualMetrics.moduleSpacing)
+            HStack(spacing: CodexPanelVisualMetrics.moduleSpacing) {
                 WeeklyQuotaCard(
                     remainingPercent: quota.weeklyRemainingPercent,
                     resetAt: quota.weeklyResetAt
@@ -973,7 +1024,7 @@ private struct WeeklyQuotaCard: View {
             .frame(height: 7)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 14)
+        .padding(.vertical, CodexPanelVisualMetrics.quotaCardVerticalInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(cardBackground)
     }
@@ -990,10 +1041,23 @@ private struct WeeklyQuotaCard: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.quotaCardCornerRadius, style: .continuous)
-            .fill(Color.black.opacity(0.30))
+            .fill(Color(red: 0.030, green: 0.046, blue: 0.052).opacity(CodexSpatialGlassStyle.cardSmokeOpacity))
             .overlay(
                 RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.quotaCardCornerRadius, style: .continuous)
-                    .stroke(.white.opacity(0.08), lineWidth: 1)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(0.03),
+                                Color.black.opacity(0.12)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.quotaCardCornerRadius, style: .continuous)
+                    .stroke(.white.opacity(0.13), lineWidth: 1)
             )
     }
 }
@@ -1049,7 +1113,7 @@ private struct ResetTimingCard: View {
             .frame(height: 7)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 14)
+        .padding(.vertical, CodexPanelVisualMetrics.quotaCardVerticalInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(cardBackground)
         .task {
@@ -1075,10 +1139,23 @@ private struct ResetTimingCard: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.quotaCardCornerRadius, style: .continuous)
-            .fill(Color.black.opacity(0.30))
+            .fill(Color(red: 0.030, green: 0.046, blue: 0.052).opacity(CodexSpatialGlassStyle.cardSmokeOpacity))
             .overlay(
                 RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.quotaCardCornerRadius, style: .continuous)
-                    .stroke(.white.opacity(0.08), lineWidth: 1)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(0.03),
+                                Color.black.opacity(0.12)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.quotaCardCornerRadius, style: .continuous)
+                    .stroke(.white.opacity(0.13), lineWidth: 1)
             )
     }
 }

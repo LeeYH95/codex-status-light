@@ -451,14 +451,25 @@ private func runSelfTests() throws {
     try expect(CodexPanelMotion.revealOffsetX == -14, "panel should reveal with a subtle leading offset")
     try expect(CodexPanelMotion.collapsedScale == 0.985, "panel scale should be subtle")
     try expect(CodexPanelMotion.hoverCollapseDelay == 0.12, "hover collapse should wait briefly to prevent pointer handoff flicker")
+    try expect(CodexPanelMotion.dismissalMode == .hoverOnly, "hover interaction should be the panel's only dismissal mechanism")
     try expect(CodexPanelMotion.expandedWidth == 500, "expanded window should fit the full panel")
     try expect(CodexPanelMotion.collapsedWidth == 126, "collapsed window should only cover the lamp and expand handle")
-    try expect(CodexPanelMotion.panelBottomBreathingRoom == 12, "panel should reserve 12 points below quota cards")
+    try expect(CodexPanelMotion.expandedPanelHeight == 241, "panel should fit the explicit quota card height plus the 8 point bottom breathing room")
     try expect(CodexPanelMotion.windowHeight == 276, "window height should include panel bottom breathing room")
     try expect(CodexPanelVisualMetrics.statusCardCornerRadius == 16, "status card should use a tighter 16 point corner radius")
     try expect(CodexPanelVisualMetrics.quotaCardCornerRadius == 14, "quota cards should use a tighter 14 point corner radius")
+    try expect(CodexPanelVisualMetrics.outerPanelCornerRadius == CodexPanelVisualMetrics.quotaCardCornerRadius, "outer panel should share the quota card corner radius")
     try expect(CodexPanelVisualMetrics.resetCountCornerRadius == 12, "reset count entry should no longer be a full capsule")
     try expect(CodexPanelVisualMetrics.resetDetailsCornerRadius == 16, "reset details popover should use a tighter corner radius")
+    try expect(CodexPanelVisualMetrics.panelContentInset == 8, "panel content should keep a consistent 8 point outer inset")
+    try expect(CodexPanelVisualMetrics.moduleSpacing == 8, "status and quota modules should use the same 8 point gap")
+    try expect(CodexPanelVisualMetrics.quotaCardRowHeight == 96, "quota cards should reserve their full intrinsic height instead of overflowing the panel")
+    try expect(CodexPanelVisualMetrics.quotaCardVerticalInset == 12, "quota card content should fit inside its assigned layout row")
+    try expect(CodexPanelVisualMetrics.headerHeight == 50, "panel header should use an explicit layout height")
+    try expect(
+        CodexPanelMotion.expandedPanelHeight == CodexPanelVisualMetrics.expandedPanelHeight,
+        "panel frame should derive from its content layout instead of a separate background height"
+    )
     try expect(
         WeeklyQuotaPresentation.normalizedRemainingProgress(for: 12) == 0.12,
         "weekly quota gauge should convert 12 percent remaining to 0.12 progress"
@@ -469,7 +480,7 @@ private func runSelfTests() throws {
     )
     try expect(CodexPanelVisualMetrics.quotaGaugeDiameter == 63, "quota gauge should use the approved 63 point diameter")
     try expect(CodexPanelVisualMetrics.quotaGaugeSpacing == 14, "quota gauge should keep 14 points away from the traffic light")
-    try expect(CodexPanelMotion.collapsedWindowHeight == 318, "collapsed window should fit the detached quota gauge")
+    try expect(CodexPanelMotion.collapsedWindowHeight == 328, "window should leave visual clearance below the detached quota gauge")
     try expect(CodexPanelVisualMetrics.quotaReservoirSize == 46, "quota reservoir should use the approved 46 point size")
     try expect(CodexPanelVisualMetrics.quotaReservoirCornerRadius == 16, "quota reservoir should use the approved 16 point corner radius")
     try expect(
@@ -479,6 +490,35 @@ private func runSelfTests() throws {
     try expect(
         CodexPanelMotion.quotaReservoirWindowHeight == CodexPanelMotion.collapsedWindowHeight,
         "expanded and collapsed states should use the same reservoir window height"
+    )
+
+    try expect(
+        CodexSpatialGlassStyle.panelSmokeOpacity == 0.34,
+        "native HUD glass should receive only a light smoke tint"
+    )
+    try expect(
+        CodexSpatialGlassStyle.cardSmokeOpacity == 0.38,
+        "interior cards should remain a darker layer over the native glass"
+    )
+    try expect(
+        CodexSpatialGlassStyle.highlightOpacity == 0.12,
+        "glass surfaces should retain a restrained, non-frosted edge highlight"
+    )
+    try expect(
+        CodexSpatialGlassStyle.usesNativeMaterial,
+        "outer surfaces should use the dedicated dark native HUD glass"
+    )
+    try expect(
+        CodexSpatialGlassStyle.forcesDarkAppearance,
+        "native HUD glass should not inherit macOS light appearance"
+    )
+    try expect(
+        CodexSpatialGlassStyle.usesSingleTrafficEdge,
+        "traffic housing should render one continuous outer edge"
+    )
+    try expect(
+        CodexSpatialGlassStyle.clipsQuotaReservoirToShape,
+        "quota reservoir glass and liquid should share the same rounded outline"
     )
 
     let tempDirectory = FileManager.default.temporaryDirectory
