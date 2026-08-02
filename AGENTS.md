@@ -1,0 +1,76 @@
+# Codex Quota 开发指导方针
+
+## 项目目标
+
+Codex Quota 是一个 macOS 悬浮 HUD：以红绿灯、任务状态和每周额度向用户展示 Codex 的使用状态。
+
+- 界面：SwiftUI
+- 悬浮无边框窗口与窗口尺寸：AppKit
+- 本地验证应用：`dist/Codex Quota.app`
+
+## 目录说明
+
+- `Sources/CodexTrafficGlassApp/`：应用生命周期、SwiftUI 视图、窗口和 hover 交互。
+- `Sources/CodexTrafficGlassCore/`：状态模型、视觉 token、动画 token 和业务逻辑。
+- `Tests/CodexTrafficGlassSelfTests/`：可执行的自测程序。
+- `dist/Codex Quota.app/`：用于实际运行和截图验收的本地应用包。
+
+## 设计与布局原则
+
+1. 明确区分两层：
+   - **外层玻璃面板（background / container）**：负责整体玻璃材质、外轮廓和窗口承载。
+   - **内部功能卡片（modules / cards）**：负责当前状态、周额度、重置时间等信息。
+   不要把卡片尺寸、卡片间距与外层背景的尺寸混为一谈。
+
+2. 所有可复用的尺寸、圆角、间距统一放在 `CodexPanelVisualMetrics`。
+   - 不要在单个 View 中新增无法解释的“魔法数字”。
+   - 模块之间的间距与面板内容的四周 inset 应保持一致，除非设计明确要求不同。
+   - 修改任一高度时，要计算：header、divider、卡片高度、模块间距以及上下 inset 的总和。
+
+3. 不要用额外 `Spacer`、任意增大外层高度或 `offset` 来掩盖裁切问题。
+   先定位实际的 layout owner，再修正该层的约束或显式尺寸。
+
+4. 保持深色 HUD glass 风格。
+   - 外层优先使用现有原生材质与 `GlassBackground`。
+   - 内部卡片可以更深，但不要把整体改成不透明的普通矩形。
+   - 圆角、描边和阴影应从现有 visual metrics / style token 取值。
+
+## 交互规则
+
+- 折叠态通过左侧的展开入口打开面板。
+- 展开态仅在鼠标离开**整个组件**后自动收起（hover-only dismissal）。
+- 除非产品交互明确变化，不增加冗余的手动收起按钮。
+- 保留 hover handoff delay，避免鼠标在相邻交互区域移动时闪烁收起。
+
+## 修改流程
+
+1. 修改前先阅读相关 View、`CodexPanelVisualMetrics`、`CodexPanelMotion` 与对应自测。
+2. 对可表达的交互约束或关键视觉 token，先补充/更新一个会失败的 self-test，再实现最小改动。
+3. 完成后至少运行：
+
+   ```sh
+   swift run --disable-sandbox CodexTrafficGlassSelfTests
+   swift build --disable-sandbox
+   git diff --check
+   ```
+
+4. 只要改动涉及 UI、间距、圆角、尺寸、裁切或动画，都必须更新并启动本地应用包：
+
+   ```sh
+   cp .build/debug/Codexquota 'dist/Codex Quota.app/Contents/MacOS/Codexquota'
+   codesign --force --deep --sign - 'dist/Codex Quota.app'
+   open 'dist/Codex Quota.app'
+   ```
+
+5. 使用真实运行态截图验收。**不能只凭代码推断就声称视觉问题已经解决。**
+   验收时尤其检查：
+   - 底部 inset 是否和模块间距一致；
+   - 卡片是否被裁切；
+   - 右侧/底部是否因窗口 frame 改动而溢出；
+   - hover 展开与自动收起是否稳定。
+
+## 变更边界
+
+- 保留用户已有的未提交改动，不覆盖、不重置、不顺手清理无关代码。
+- 只修改当前需求直接涉及的代码；不要将窗口尺寸、动画时序、玻璃材质等不相关内容作为“顺带优化”。
+- 完成时说明：修改了什么、运行了哪些验证、哪些视觉结论来自实际截图。
