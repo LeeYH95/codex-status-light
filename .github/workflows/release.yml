@@ -1,0 +1,57 @@
+name: Release Codex Quota
+
+"on":
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      RELEASE_DIRECTORY: ${{ github.workspace }}/ci-release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag and prepare release notes
+        id: release_metadata
+        shell: zsh
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          expected_tag="v$version"
+          if [[ "$GITHUB_REF_NAME" != "$expected_tag" ]]; then
+            print -u2 "tag $GITHUB_REF_NAME 与 VERSION $version 不一致"
+            exit 1
+          fi
+
+          notes_file="$RUNNER_TEMP/release-notes.md"
+          awk -v heading="## [$version]" '
+            $0 == heading { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > "$notes_file"
+
+          if [[ ! -s "$notes_file" ]]; then
+            print -u2 "CHANGELOG.md 缺少 $heading 的发布说明"
+            exit 1
+          fi
+
+          print "version=$version" >> "$GITHUB_OUTPUT"
+          print "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
+
+      - name: Test, build, and package the release
+        run: ./scripts/verify-ci.sh
+
+      - name: Create GitHub Release and upload app package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release_metadata.outputs.version }}
+          NOTES_FILE: ${{ steps.release_metadata.outputs.notes_file }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "$RELEASE_DIRECTORY/Codex-Quota-v$VERSION.zip" \
+            --title "Codex Quota $GITHUB_REF_NAME" \
+            --notes-file "$NOTES_FILE"

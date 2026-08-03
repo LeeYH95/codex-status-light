@@ -84,11 +84,11 @@ Codex Quota 是一个 macOS 悬浮 HUD：以红绿灯、任务状态和每周额
 
 1. 确认工作区干净、全部验证通过，并先推送包含变更的分支。
 2. 通过 Pull Request 合并到 `main`；不要从未合并的功能分支直接发布。
-3. 从 `main` 创建 GitHub Release / tag。Release 标题格式：`Codex Quota vX.Y.Z`。
+3. 从 `main` 创建并推送与 `VERSION` 一致的 `vX.Y.Z` tag。GitHub Actions 负责创建 GitHub Release、重新打包并上传资产；不要手工创建同名 Release。
 4. 发布前更新根目录 `VERSION`，并运行 `./scripts/package-release.sh`。
    - 该脚本会将 `VERSION` 同步至 App 内部版本，重新签名，并生成 `dist/releases/Codex-Quota-vX.Y.Z.zip`。
    - 不得手工拼装或覆盖已有发布资产；脚本发现同名 zip 时应停止，避免误覆盖历史版本。
-5. 将该 zip 作为 GitHub Release asset 上传；Release 不能只包含 source code。
+5. 在推送 tag 前更新 `CHANGELOG.md` 中对应版本的发布说明；自动 Release 会使用该段文字。Release 不能只包含 source code，自动工作流必须上传 zip asset。
 6. 发布说明必须写明本版对应的用户可感知变更，至少按以下结构组织：
 
    ```md
