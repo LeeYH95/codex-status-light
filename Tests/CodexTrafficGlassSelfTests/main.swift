@@ -189,6 +189,33 @@ private func runSelfTests() throws {
         "reset timeline should refresh at the next wall-clock hour"
     )
 
+    try expect(
+        CodexRefreshCadence.accountRateLimitsReconciliationInterval == 60,
+        "account rate limits should reconcile once a minute while idle"
+    )
+
+    let olderRecentQuota = CodexParsedEvent.quota(
+        fiveHourUsedPercent: 30,
+        weeklyUsedPercent: 40,
+        fiveHourResetAt: nil,
+        weeklyResetAt: nil,
+        at: Date(timeIntervalSince1970: 10)
+    )
+    let newerRecentQuota = CodexParsedEvent.quota(
+        fiveHourUsedPercent: 35,
+        weeklyUsedPercent: 45,
+        fiveHourResetAt: nil,
+        weeklyResetAt: nil,
+        at: Date(timeIntervalSince1970: 20)
+    )
+    try expect(
+        RecentQuotaEventSelector.latest(in: [
+            [.reasoning(Date(timeIntervalSince1970: 15)), olderRecentQuota],
+            [newerRecentQuota]
+        ]) == newerRecentQuota,
+        "quota fallback should select the newest value already present in recent log tails"
+    )
+
     let appServerRateLimitJSON = Data(#"{"id":2,"result":{"rateLimitResetCredits":{"availableCount":3,"credits":[{"id":"RateLimitResetCredit_1","resetType":"codexRateLimits","status":"available","grantedAt":1782519396,"expiresAt":1785111396,"title":"Full reset","description":"Thanks for using Codex! You've been granted one free rate limit reset."},{"id":"RateLimitResetCredit_2","resetType":"codexRateLimits","status":"available","grantedAt":1782933283,"expiresAt":1785525283,"title":"Full reset","description":"Thanks for using Codex! You've been granted one free rate limit reset."},{"id":"RateLimitResetCredit_3","resetType":"codexRateLimits","status":"available","grantedAt":1783966227,"expiresAt":1786558227,"title":"Full reset","description":"Thanks for using Codex! You've been granted one free rate limit reset."}]},"rateLimits":{"limitId":"codex","primary":{"usedPercent":32,"windowDurationMins":10080,"resetsAt":1785287297},"secondary":null}}}"#.utf8)
     let appServerQuota = try CodexAppServerRateLimitsParser().parseQuota(from: appServerRateLimitJSON)
     try expect(

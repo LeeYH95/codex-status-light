@@ -56,14 +56,14 @@ final class CodexStatusStore: ObservableObject {
             await self?.refreshAccountRateLimits()
 
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                try? await Task.sleep(nanoseconds: UInt64(CodexRefreshCadence.statusPollingInterval * 1_000_000_000))
                 await self?.refreshFromLogs()
             }
         }
 
         quotaReconciliationTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 15_000_000_000)
+                try? await Task.sleep(nanoseconds: UInt64(CodexRefreshCadence.accountRateLimitsReconciliationInterval * 1_000_000_000))
                 await self?.refreshAccountRateLimits()
             }
         }
@@ -90,15 +90,15 @@ final class CodexStatusStore: ObservableObject {
         let refreshResult = await Task.detached(priority: .utility) {
             (
                 sessionEvents: reader.readRecentSessionEvents(),
-                latestQuotaEvent: reader.readLatestQuotaEvent(),
                 hasSessionFile: reader.latestSessionFile() != nil
             )
         }.value
         let sessionEvents = refreshResult.sessionEvents
         let events = sessionEvents.flatMap { $0 }
+        let latestQuotaEvent = RecentQuotaEventSelector.latest(in: sessionEvents)
 
         if events.isEmpty {
-            let quota = refreshResult.latestQuotaEvent.map {
+            let quota = latestQuotaEvent.map {
                 QuotaReducer().reduce(current: snapshot.quota, event: $0)
             } ?? snapshot.quota
 
@@ -116,7 +116,7 @@ final class CodexStatusStore: ObservableObject {
         nextSnapshot = GlobalStatusAggregator(statusReducer: statusReducer)
             .reduce(current: nextSnapshot, sessionEvents: sessionEvents)
 
-        if let latestQuotaEvent = refreshResult.latestQuotaEvent {
+        if let latestQuotaEvent {
             nextSnapshot = statusReducer.reduce(current: nextSnapshot, event: latestQuotaEvent)
         }
 
@@ -124,21 +124,6 @@ final class CodexStatusStore: ObservableObject {
             to: statusReducer.refresh(current: nextSnapshot)
         )
         logChangeWatcher?.refreshWatchedFiles()
-    }
-
-    func refreshQuotaFromLogs() async {
-        let reader = logReader
-        let latestQuotaEvent = await Task.detached(priority: .utility) {
-            reader.readLatestQuotaEvent()
-        }.value
-
-        guard let latestQuotaEvent else {
-            return
-        }
-
-        snapshot = applyingLiveQuotaPriority(
-            to: statusReducer.reduce(current: snapshot, event: latestQuotaEvent)
-        )
     }
 
     func refreshAccountRateLimits() async {

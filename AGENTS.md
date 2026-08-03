@@ -85,7 +85,11 @@ Codex Quota 是一个 macOS 悬浮 HUD：以红绿灯、任务状态和每周额
 1. 确认工作区干净、全部验证通过，并先推送包含变更的分支。
 2. 通过 Pull Request 合并到 `main`；不要从未合并的功能分支直接发布。
 3. 从 `main` 创建 GitHub Release / tag。Release 标题格式：`Codex Quota vX.Y.Z`。
-4. 发布说明必须写明本版对应的用户可感知变更，至少按以下结构组织：
+4. 发布前更新根目录 `VERSION`，并运行 `./scripts/package-release.sh`。
+   - 该脚本会将 `VERSION` 同步至 App 内部版本，重新签名，并生成 `dist/releases/Codex-Quota-vX.Y.Z.zip`。
+   - 不得手工拼装或覆盖已有发布资产；脚本发现同名 zip 时应停止，避免误覆盖历史版本。
+5. 将该 zip 作为 GitHub Release asset 上传；Release 不能只包含 source code。
+6. 发布说明必须写明本版对应的用户可感知变更，至少按以下结构组织：
 
    ```md
    ## 新增（Added）
@@ -104,8 +108,8 @@ Codex Quota 是一个 macOS 悬浮 HUD：以红绿灯、任务状态和每周额
 
    没有内容的栏目可以省略；不要只写“更新”或只列内部文件名。
 
-5. 发布后必须核对：Release 不是 draft / prerelease、tag 指向正确的 `main` commit、远程 tag 已存在。
-6. 已发布的 tag 和 Release 不得删除、移动、强推覆盖或重用。发现问题时发布新的 PATCH 版本，例如 `v1.0.1`，并在说明中标注修复内容。
+7. 发布后必须核对：Release 不是 draft / prerelease、tag 指向正确的 `main` commit、远程 tag 已存在，并且下载 asset 后可解压。
+8. 已发布的 tag 和 Release 不得删除、移动、强推覆盖或重用。发现问题时发布新的 PATCH 版本，例如 `v1.0.1`，并在说明中标注修复内容。
 
 ### 恢复原则
 

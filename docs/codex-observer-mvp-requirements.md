@@ -54,9 +54,8 @@ The widget displays remaining quota:
 - 5h remaining = `100 - primary.used_percent`
 - 1w remaining = `100 - secondary.used_percent`
 - reset time = `primary.resets_at` / `secondary.resets_at`
-- The app reads the latest quota separately from status events by scanning backward through recent session logs for the newest valid `codex` `rate_limits` record, so large trailing messages, empty `premium` credit records, or a single stale session file do not keep older quota values on screen.
-- Within the current reset window, quota selection is conservative: if a later log line contains a lower `used_percent` snapshot than an earlier line in the same window, the app keeps the higher `used_percent` to avoid overstating remaining usage.
-- Local synchronization is near-real-time: the app refreshes immediately when watched Codex session files change, with a low-frequency polling fallback. A separate quota reconciliation task rereads the latest valid quota every 60 seconds. It cannot show usage that Codex has not yet written to local logs.
+- The app reads current quota from the Codex app-server. Recent tails of active session logs provide a fallback when the app-server is temporarily unavailable; it does not repeatedly scan historical session files.
+- Local synchronization is near-real-time: the app refreshes immediately when watched Codex session files change, with a low-frequency status-polling fallback. Account quota is reconciled every 60 seconds while idle.
 - The current-status card must not show a percentage unless it is quota. Internal recognition confidence is kept out of the MVP UI to avoid confusing it with remaining usage.
 
 ## Plan
@@ -71,6 +70,6 @@ The widget displays remaining quota:
 ## Current MVP Limitations
 
 - It watches and periodically rereads local session logs instead of subscribing to a native Codex event API.
-- It reads recent lines from the latest JSONL file on each refresh; this is acceptable for MVP but can be optimized with incremental tail offsets.
+- It reads bounded recent tails from active JSONL files on each refresh. Historical session files are not part of the steady-state quota path.
 - It is desktop-floating only; menu bar mode is intentionally out of scope.
 - Cursor integration and hardware lighting are intentionally out of scope.
