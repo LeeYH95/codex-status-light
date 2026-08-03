@@ -15,6 +15,12 @@ Codex Quota 是一个 macOS 悬浮 HUD：以红绿灯、任务状态和每周额
 - `Tests/CodexTrafficGlassSelfTests/`：可执行的自测程序。
 - `dist/Codex Quota.app/`：用于实际运行和截图验收的本地应用包。
 
+## 数据可靠性
+
+- 额度重置时间字段必须同时兼容 ISO 8601 文本与 Unix 秒数；Unix 秒数可能以 JSON 数值或字符串出现。
+- 修改日志解析、状态判断或额度/重置时间计算时，必须新增对应 self-test，至少覆盖一个正常样本和相关边界值（例如取消、失败、过期或不足一小时）。
+- 解析失败或字段缺失时应保留已有的有效额度数据，不能用空值或猜测值覆盖它。
+
 ## 设计与布局原则
 
 1. 明确区分两层：
@@ -45,7 +51,7 @@ Codex Quota 是一个 macOS 悬浮 HUD：以红绿灯、任务状态和每周额
 ## 修改流程
 
 1. 修改前先阅读相关 View、`CodexPanelVisualMetrics`、`CodexPanelMotion` 与对应自测。
-2. 对可表达的交互约束或关键视觉 token，先补充/更新一个会失败的 self-test，再实现最小改动。
+2. 对可表达的交互约束、关键视觉 token，以及日志解析、状态判断、额度或重置时间计算，先补充/更新一个会失败的 self-test，再实现最小改动。
 3. 完成后至少运行：
 
    ```sh
@@ -70,6 +76,12 @@ Codex Quota 是一个 macOS 悬浮 HUD：以红绿灯、任务状态和每周额
    - hover 展开与自动收起是否稳定。
 
 ## 版本发布与恢复
+
+### 持续集成（CI）
+
+- 所有 Pull Request 合并到 `main` 前，GitHub Actions 的 `Verify Codex Quota` 必须通过；它会运行 self-test、Swift 构建、打包校验并上传安装包 artifact。
+- CI 和正式发布工作流使用 `macos-15`，以匹配项目要求的 Swift 6 工具链；不要降级 runner 来规避构建错误。
+- 普通分支或 `main` 推送只运行验证；只有推送与 `VERSION` 一致的 `vX.Y.Z` tag 才会触发 GitHub Release。
 
 ### 版本规则
 
