@@ -31,7 +31,17 @@ The script builds the app, synchronizes `CFBundleShortVersionString` and
 dist/releases/Codex-Quota-vX.Y.Z.zip
 ```
 
-Upload that archive when creating the matching GitHub Release tag `vX.Y.Z`.
+For a formal release, push the matching Git tag `vX.Y.Z`; the release workflow
+rebuilds the archive and uploads it automatically.
+
+## Automation
+
+GitHub Actions validates every pull request and every push to `main`: self-tests,
+Swift build, version consistency, app signing, and zip integrity.
+
+After a release PR is merged, push the matching `vX.Y.Z` tag. The release workflow
+validates the tag against `VERSION`, builds the app again, creates the GitHub Release,
+and uploads the zip. The release notes come from the matching section in `CHANGELOG.md`.
 
 ## MVP Scope
 

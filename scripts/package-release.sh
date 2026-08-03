@@ -7,7 +7,7 @@ version_file="$project_root/VERSION"
 app_path="$project_root/dist/Codex Quota.app"
 binary_path="$project_root/.build/debug/Codexquota"
 info_plist="$app_path/Contents/Info.plist"
-release_directory="$project_root/dist/releases"
+release_directory="${RELEASE_DIRECTORY:-$project_root/dist/releases}"
 
 version="$(tr -d '[:space:]' < "$version_file")"
 if [[ ! "$version" =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]]; then

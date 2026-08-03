@@ -1,0 +1,29 @@
+name: Verify Codex Quota
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-14
+    env:
+      RELEASE_DIRECTORY: ${{ runner.temp }}/codex-quota-release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests, build, version checks, and packaging validation
+        run: ./scripts/verify-ci.sh
+
+      - name: Upload verified app package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Codex-Quota-${{ github.sha }}
+          path: ${{ runner.temp }}/codex-quota-release/Codex-Quota-v*.zip
+          if-no-files-found: error
+          retention-days: 14
