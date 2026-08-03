@@ -13,7 +13,7 @@ jobs:
   verify:
     runs-on: macos-14
     env:
-      RELEASE_DIRECTORY: ${{ runner.temp }}/codex-quota-release
+      RELEASE_DIRECTORY: ${{ github.workspace }}/.ci-release
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +24,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Codex-Quota-${{ github.sha }}
-          path: ${{ runner.temp }}/codex-quota-release/Codex-Quota-v*.zip
+          path: ${{ github.workspace }}/.ci-release/Codex-Quota-v*.zip
           if-no-files-found: error
           retention-days: 14

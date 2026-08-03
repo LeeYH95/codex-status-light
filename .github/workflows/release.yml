@@ -12,7 +12,7 @@ jobs:
   release:
     runs-on: macos-14
     env:
-      RELEASE_DIRECTORY: ${{ runner.temp }}/codex-quota-release
+      RELEASE_DIRECTORY: ${{ github.workspace }}/.ci-release
     steps:
       - uses: actions/checkout@v4
 
