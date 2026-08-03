@@ -194,6 +194,14 @@ public struct CodexEventParser: Sendable {
     }
 
     private func date(from value: Any?) -> Date? {
+        if let epoch = value as? TimeInterval {
+            return Date(timeIntervalSince1970: epoch)
+        }
+
+        if let epochText = value as? String, let epoch = TimeInterval(epochText) {
+            return Date(timeIntervalSince1970: epoch)
+        }
+
         guard let text = string(value) else {
             return nil
         }

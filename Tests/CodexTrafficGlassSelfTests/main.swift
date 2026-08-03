@@ -91,6 +91,18 @@ private func runSelfTests() throws {
     try expect(quota.fiveHourRemainingPercent == 83, "5-hour quota remaining should be 83")
     try expect(quota.weeklyRemainingPercent == 58, "weekly quota remaining should be 58")
 
+    try expect(
+        parser.parse(#"{"timestamp":"2026-05-30T12:00:00Z","type":"quota","five_hour_used_percent":17,"weekly_used_percent":42,"five_hour_reset_at":1780214926,"weekly_reset_at":1780233520}"#)
+            == .quota(
+                fiveHourUsedPercent: 17,
+                weeklyUsedPercent: 42,
+                fiveHourResetAt: Date(timeIntervalSince1970: 1780214926),
+                weeklyResetAt: Date(timeIntervalSince1970: 1780233520),
+                at: timestamp
+            ),
+        "quota records with numeric reset timestamps should retain both reset times"
+    )
+
     let staleLogQuota = CodexQuota(
         weeklyRemainingPercent: 99,
         weeklyResetAt: Date(timeIntervalSince1970: 1_784_764_800),
@@ -182,6 +194,27 @@ private func runSelfTests() throws {
             now: Date(timeIntervalSince1970: 11)
         ) == "等待额度刷新",
         "expired reset data should wait for a quota refresh instead of looking imminent"
+    )
+    try expect(
+        WeeklyQuotaPresentation.resetCountdownLabel(
+            resetAt: Date(timeIntervalSince1970: 3_599),
+            now: Date(timeIntervalSince1970: 0)
+        ) == "不足1小时",
+        "reset countdown should not round a sub-hour wait up to one hour"
+    )
+    try expect(
+        WeeklyQuotaPresentation.cycleElapsedProgress(
+            resetAt: weeklyResetAt,
+            now: Date(timeIntervalSince1970: -1)
+        ) == 0,
+        "reset timeline should clamp before-cycle dates to zero progress"
+    )
+    try expect(
+        WeeklyQuotaPresentation.cycleElapsedProgress(
+            resetAt: weeklyResetAt,
+            now: Date(timeIntervalSince1970: 604_801)
+        ) == 1,
+        "reset timeline should clamp expired cycles to full progress"
     )
     try expect(
         WeeklyQuotaPresentation.nextHourlyRefresh(after: Date(timeIntervalSince1970: 45_296))
@@ -290,6 +323,26 @@ private func runSelfTests() throws {
     )
     try expect(failed.state == .failed, "non-zero exit should set failed")
     try expect(failed.title == "工具执行失败", "non-zero exit title should describe failure")
+
+    let unsuccessfulCompletion = statusReducer.reduce(
+        current: running,
+        event: .taskComplete(success: false, at: Date(timeIntervalSince1970: 30)),
+        now: Date(timeIntervalSince1970: 30)
+    )
+    try expect(
+        unsuccessfulCompletion.state == .failed && unsuccessfulCompletion.updatedAt == Date(timeIntervalSince1970: 30),
+        "an unsuccessful task completion should replace running with a fresh failure state"
+    )
+
+    let cancelled = statusReducer.reduce(
+        current: running,
+        event: .taskAborted(Date(timeIntervalSince1970: 40)),
+        now: Date(timeIntervalSince1970: 40)
+    )
+    try expect(
+        cancelled.state == .idle && cancelled.detail == "任务已取消",
+        "an aborted task should return the traffic light to idle instead of leaving it running"
+    )
 
     let stale = statusReducer.refresh(
         current: CodexStatusSnapshot(
