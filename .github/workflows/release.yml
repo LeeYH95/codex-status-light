@@ -1,6 +1,6 @@
 name: Release Codex Quota
 
-on:
+"on":
   push:
     tags:
       - "v*.*.*"

@@ -1,6 +1,6 @@
 name: Verify Codex Quota
 
-on:
+"on":
   pull_request:
   push:
     branches:
