@@ -157,8 +157,8 @@ private func runSelfTests() throws {
         "banked reset details should call out the earliest expiration"
     )
     try expect(
-        BankedResetPresentation.summaryLabel(for: CodexQuota()) == "重置次数 0 次",
-        "empty banked reset entry should make the zero state explicit"
+        BankedResetPresentation.summaryLabel(for: CodexQuota()).isEmpty,
+        "zero available resets should hide the expanded-panel reset entry"
     )
 
     try expect(
