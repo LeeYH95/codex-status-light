@@ -502,6 +502,10 @@ private struct StatusGlassPanel: View {
         .interactiveSpring(response: 0.24, dampingFraction: 0.86, blendDuration: 0.05)
     }
 
+    private var resetCountLabel: String {
+        BankedResetPresentation.summaryLabel(for: snapshot.quota)
+    }
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(spacing: 0) {
@@ -513,14 +517,16 @@ private struct StatusGlassPanel: View {
 
                     Spacer(minLength: 10)
 
-                    ResetCountPill(
-                        quota: snapshot.quota,
-                        isActive: resetDetailsVisible
-                    ) {
-                        toggleResetDetailsPinned()
-                    }
-                    .onHover { isHovering in
-                        handleResetDetailsHover(isHovering)
+                    if !resetCountLabel.isEmpty {
+                        ResetCountPill(
+                            quota: snapshot.quota,
+                            isActive: resetDetailsVisible
+                        ) {
+                            toggleResetDetailsPinned()
+                        }
+                        .onHover { isHovering in
+                            handleResetDetailsHover(isHovering)
+                        }
                     }
 
                 }
@@ -551,7 +557,7 @@ private struct StatusGlassPanel: View {
                 PanelGlassShape()
             }
 
-            if resetDetailsVisible {
+            if resetDetailsVisible && !resetCountLabel.isEmpty {
                 BankedResetDetailsPopover(quota: snapshot.quota)
                     .padding(.top, 58)
                     .padding(.trailing, 20)
