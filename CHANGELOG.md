@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.0.3]
+
+### 调整（Changed）
+
+- 展开面板的额度卡现在同时显示 5 小时和 1 周剩余额度、各自的重置时间与进度条。
+
+### 验证（Verification）
+
+- CodexTrafficGlassSelfTests 通过。
+- Swift 构建通过。
+
 ## [1.0.2]
 
 ### 修复（Fixed）
