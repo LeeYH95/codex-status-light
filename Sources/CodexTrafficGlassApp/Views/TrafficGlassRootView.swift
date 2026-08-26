@@ -41,7 +41,7 @@ struct TrafficGlassRootView: View {
                         }
                     }
 
-                CollapsedWeeklyQuotaReservoir(quota: store.snapshot.quota)
+                CollapsedFiveHourQuotaReservoir(quota: store.snapshot.quota)
             }
             .frame(
                 width: 78,
@@ -128,16 +128,20 @@ struct TrafficGlassRootView: View {
     }
 }
 
-private struct CollapsedWeeklyQuotaReservoir: View {
+private struct CollapsedFiveHourQuotaReservoir: View {
     let quota: CodexQuota
     @State private var wavePhase = 0.0
 
+    private var remainingPercent: Double? {
+        CollapsedQuotaReservoirPresentation.remainingPercent(for: quota)
+    }
+
     private var progress: Double {
-        WeeklyQuotaPresentation.normalizedRemainingProgress(for: quota.weeklyRemainingPercent)
+        WeeklyQuotaPresentation.normalizedRemainingProgress(for: remainingPercent)
     }
 
     private var waterColors: [Color] {
-        switch WeeklyQuotaPresentation.remainingBand(for: quota.weeklyRemainingPercent) {
+        switch WeeklyQuotaPresentation.remainingBand(for: remainingPercent) {
         case .ample:
             [
                 Color(red: 0.49, green: 0.97, blue: 0.75).opacity(0.82),
@@ -199,7 +203,7 @@ private struct CollapsedWeeklyQuotaReservoir: View {
                 )
                 .padding(1)
 
-            Text(quota.weeklyRemainingPercent.map { "\(Int($0.rounded()))%" } ?? "--")
+            Text(remainingPercent.map { "\(Int($0.rounded()))%" } ?? "--")
                 .font(.system(size: 14, weight: .black, design: .rounded))
                 .foregroundStyle(.white.opacity(0.92))
                 .monospacedDigit()
@@ -235,8 +239,8 @@ private struct CollapsedWeeklyQuotaReservoir: View {
                 wavePhase = .pi * 2
             }
         }
-        .accessibilityLabel("周额度剩余")
-        .accessibilityValue(quota.weeklyRemainingPercent.map { "\(Int($0.rounded()))%" } ?? "未知")
+        .accessibilityLabel("5小时额度剩余")
+        .accessibilityValue(remainingPercent.map { "\(Int($0.rounded()))%" } ?? "未知")
     }
 }
 
