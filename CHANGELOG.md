@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.0.4]
+
+### 修复（Fixed）
+
+- 折叠态的小悬浮额度球现在显示 5 小时额度，不再误显示每周额度。
+
+### 验证（Verification）
+
+- CodexTrafficGlassSelfTests 通过。
+- Swift 构建通过。
+
 ## [1.0.3]
 
 ### 调整（Changed）
