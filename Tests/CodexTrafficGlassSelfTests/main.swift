@@ -545,6 +545,14 @@ private func runSelfTests() throws {
     try expect(CodexPanelVisualMetrics.moduleSpacing == 8, "status and quota modules should use the same 8 point gap")
     try expect(CodexPanelVisualMetrics.quotaCardRowHeight == 96, "quota cards should reserve their full intrinsic height instead of overflowing the panel")
     try expect(CodexPanelVisualMetrics.quotaCardVerticalInset == 12, "quota card content should fit inside its assigned layout row")
+    try expect(
+        CodexPanelVisualMetrics.quotaWindowSpacing == 4,
+        "two quota windows should use a compact, tokenized vertical gap"
+    )
+    try expect(
+        CodexPanelVisualMetrics.quotaWindowProgressHeight == 5,
+        "two quota windows should use a compact, tokenized progress height"
+    )
     try expect(CodexPanelVisualMetrics.headerHeight == 50, "panel header should use an explicit layout height")
     try expect(
         CodexPanelMotion.expandedPanelHeight == CodexPanelVisualMetrics.expandedPanelHeight,

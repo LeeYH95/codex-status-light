@@ -546,7 +546,7 @@ private struct StatusGlassPanel: View {
                         updatedAt: snapshot.updatedAt
                     )
 
-                    WeeklyQuotaCardsRow(quota: snapshot.quota)
+                    QuotaCardsRow(quota: snapshot.quota)
                         .frame(height: CodexPanelVisualMetrics.quotaCardRowHeight)
                 }
                 .padding(CodexPanelVisualMetrics.panelContentInset)
@@ -950,17 +950,14 @@ private struct CurrentStatusCard: View {
     }
 }
 
-private struct WeeklyQuotaCardsRow: View {
+private struct QuotaCardsRow: View {
     let quota: CodexQuota
 
     var body: some View {
         GeometryReader { proxy in
             let availableWidth = max(0, proxy.size.width - CodexPanelVisualMetrics.moduleSpacing)
             HStack(spacing: CodexPanelVisualMetrics.moduleSpacing) {
-                WeeklyQuotaCard(
-                    remainingPercent: quota.weeklyRemainingPercent,
-                    resetAt: quota.weeklyResetAt
-                )
+                CombinedQuotaCard(quota: quota)
                 .frame(width: availableWidth * 0.60)
 
                 ResetTimingCard(resetAt: quota.weeklyResetAt)
@@ -970,79 +967,33 @@ private struct WeeklyQuotaCardsRow: View {
     }
 }
 
-private struct WeeklyQuotaCard: View {
-    let remainingPercent: Double?
-    let resetAt: Date?
-
-    private var normalizedRemaining: Double {
-        min(100, max(0, remainingPercent ?? 0))
-    }
-
-    private var accent: Color {
-        switch WeeklyQuotaPresentation.remainingBand(for: remainingPercent) {
-        case .ample:
-            Color(red: 0.26, green: 0.90, blue: 0.48)
-        case .caution:
-            Color(red: 1.00, green: 0.73, blue: 0.20)
-        case .critical:
-            Color(red: 1.00, green: 0.30, blue: 0.28)
-        case .unknown:
-            .white.opacity(0.36)
-        }
-    }
+private struct CombinedQuotaCard: View {
+    let quota: CodexQuota
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("1 周")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.58))
+        VStack(alignment: .leading, spacing: CodexPanelVisualMetrics.quotaWindowSpacing) {
+            Text("额度")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.58))
 
-                Spacer(minLength: 8)
+            QuotaWindowRow(
+                label: "5 小时",
+                remainingPercent: quota.fiveHourRemainingPercent,
+                resetAt: quota.fiveHourResetAt,
+                resetDateFormat: "H:mm"
+            )
 
-                Text(resetDateLabel)
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.54))
-                    .lineLimit(1)
-            }
-
-            Text(remainingPercent.map { "\(Int($0.rounded()))%" } ?? "--")
-                .font(.system(size: 27, weight: .black, design: .rounded))
-                .foregroundStyle(.white)
-                .monospacedDigit()
-                .lineLimit(1)
-
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.09))
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [accent, accent.opacity(0.72)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: proxy.size.width * normalizedRemaining / 100)
-                        .animation(.easeInOut(duration: 0.32), value: normalizedRemaining)
-                }
-            }
-            .frame(height: 7)
+            QuotaWindowRow(
+                label: "1 周",
+                remainingPercent: quota.weeklyRemainingPercent,
+                resetAt: quota.weeklyResetAt,
+                resetDateFormat: "M月d日"
+            )
         }
         .padding(.horizontal, 12)
         .padding(.vertical, CodexPanelVisualMetrics.quotaCardVerticalInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(cardBackground)
-    }
-
-    private var resetDateLabel: String {
-        guard let resetAt else {
-            return ""
-        }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "M月d日"
-        return formatter.string(from: resetAt)
     }
 
     private var cardBackground: some View {
@@ -1065,6 +1016,81 @@ private struct WeeklyQuotaCard: View {
                 RoundedRectangle(cornerRadius: CodexPanelVisualMetrics.quotaCardCornerRadius, style: .continuous)
                     .stroke(.white.opacity(0.13), lineWidth: 1)
             )
+    }
+}
+
+private struct QuotaWindowRow: View {
+    let label: String
+    let remainingPercent: Double?
+    let resetAt: Date?
+    let resetDateFormat: String
+
+    private var normalizedRemaining: Double {
+        min(100, max(0, remainingPercent ?? 0))
+    }
+
+    private var accent: Color {
+        switch WeeklyQuotaPresentation.remainingBand(for: remainingPercent) {
+        case .ample:
+            Color(red: 0.26, green: 0.90, blue: 0.48)
+        case .caution:
+            Color(red: 1.00, green: 0.73, blue: 0.20)
+        case .critical:
+            Color(red: 1.00, green: 0.30, blue: 0.28)
+        case .unknown:
+            .white.opacity(0.36)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 2) {
+            HStack(spacing: 6) {
+                Text(label)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.72))
+
+                Spacer(minLength: 4)
+
+                Text(remainingPercent.map { "\(Int($0.rounded()))%" } ?? "--")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+                    .lineLimit(1)
+
+                Text(resetLabel)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.54))
+                    .monospacedDigit()
+                    .lineLimit(1)
+            }
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.white.opacity(0.09))
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [accent, accent.opacity(0.72)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: proxy.size.width * normalizedRemaining / 100)
+                        .animation(.easeInOut(duration: 0.32), value: normalizedRemaining)
+                }
+            }
+            .frame(height: CodexPanelVisualMetrics.quotaWindowProgressHeight)
+        }
+    }
+
+    private var resetLabel: String {
+        guard let resetAt else {
+            return ""
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = resetDateFormat
+        return formatter.string(from: resetAt)
     }
 }
 

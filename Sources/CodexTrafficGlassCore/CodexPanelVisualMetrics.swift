@@ -8,6 +8,8 @@ public enum CodexPanelVisualMetrics {
     public static let statusCardHeight = 70.0
     public static let quotaCardRowHeight = 96.0
     public static let quotaCardVerticalInset = 12.0
+    public static let quotaWindowSpacing = 4.0
+    public static let quotaWindowProgressHeight = 5.0
     public static let expandedPanelHeight = headerHeight
         + dividerHeight
         + (panelContentInset * 2)
