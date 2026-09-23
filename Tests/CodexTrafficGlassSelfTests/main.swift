@@ -283,8 +283,8 @@ private func runSelfTests() throws {
     try expect(
         CollapsedQuotaReservoirPresentation.remainingPercent(
             for: CodexQuota(weeklyRemainingPercent: 20)
-        ) == nil,
-        "collapsed quota reservoir should not fall back to weekly quota"
+        ) == 20,
+        "collapsed quota reservoir should fall back to weekly quota when 5-hour quota is unavailable"
     )
     let unchangedQuota = QuotaReducer().reduce(
         current: currentQuota,
