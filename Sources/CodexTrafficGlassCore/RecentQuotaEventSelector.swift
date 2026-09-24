@@ -5,7 +5,10 @@ public enum RecentQuotaEventSelector {
         var latestQuotaEvent: CodexParsedEvent?
 
         for event in eventGroups.joined() {
-            guard case .quota = event else {
+            switch event {
+            case .quota, .quotaSnapshot:
+                break
+            default:
                 continue
             }
 
