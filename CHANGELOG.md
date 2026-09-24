@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.0.6]
+
+### 修复（Fixed）
+
+- 实时账户仅返回周额度时，不再被旧 session 日志中的 5 小时额度覆盖；展开面板会隐藏 5 小时行，悬浮球显示周额度。
+
+### 验证（Verification）
+
+- CodexTrafficGlassSelfTests 通过。
+- Swift 构建通过。
+
 ## [1.0.5]
 
 ### 修复（Fixed）
