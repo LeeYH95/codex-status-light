@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.0.7]
+
+### 修复（Fixed）
+
+- 额度日志现在根据实际窗口长度识别 5 小时和 1 周额度；仅有周额度的套餐不再被误显示为“5 小时”。
+
+### 验证（Verification）
+
+- CodexTrafficGlassSelfTests 通过。
+- Swift 构建通过。
+
 ## [1.0.6]
 
 ### 修复（Fixed）
