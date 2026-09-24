@@ -41,7 +41,7 @@ struct TrafficGlassRootView: View {
                         }
                     }
 
-                CollapsedFiveHourQuotaReservoir(quota: store.snapshot.quota)
+                CollapsedQuotaReservoir(quota: store.snapshot.quota)
             }
             .frame(
                 width: 78,
@@ -128,7 +128,7 @@ struct TrafficGlassRootView: View {
     }
 }
 
-private struct CollapsedFiveHourQuotaReservoir: View {
+private struct CollapsedQuotaReservoir: View {
     let quota: CodexQuota
     @State private var wavePhase = 0.0
 
@@ -980,12 +980,14 @@ private struct CombinedQuotaCard: View {
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.58))
 
-            QuotaWindowRow(
-                label: "5 小时",
-                remainingPercent: quota.fiveHourRemainingPercent,
-                resetAt: quota.fiveHourResetAt,
-                resetDateFormat: "H:mm"
-            )
+            if quota.fiveHourRemainingPercent != nil {
+                QuotaWindowRow(
+                    label: "5 小时",
+                    remainingPercent: quota.fiveHourRemainingPercent,
+                    resetAt: quota.fiveHourResetAt,
+                    resetDateFormat: "H:mm"
+                )
+            }
 
             QuotaWindowRow(
                 label: "1 周",
