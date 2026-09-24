@@ -8,11 +8,18 @@ public enum CodexQuotaSourceMerger {
             return logQuota
         }
 
+        let hasLiveRateLimitWindow = liveQuota.fiveHourRemainingPercent != nil
+            || liveQuota.weeklyRemainingPercent != nil
+
         return CodexQuota(
-            fiveHourRemainingPercent: liveQuota.fiveHourRemainingPercent ?? logQuota.fiveHourRemainingPercent,
-            weeklyRemainingPercent: liveQuota.weeklyRemainingPercent ?? logQuota.weeklyRemainingPercent,
-            fiveHourResetAt: liveQuota.fiveHourResetAt ?? logQuota.fiveHourResetAt,
-            weeklyResetAt: liveQuota.weeklyResetAt ?? logQuota.weeklyResetAt,
+            fiveHourRemainingPercent: hasLiveRateLimitWindow
+                ? liveQuota.fiveHourRemainingPercent
+                : logQuota.fiveHourRemainingPercent,
+            weeklyRemainingPercent: hasLiveRateLimitWindow
+                ? liveQuota.weeklyRemainingPercent
+                : logQuota.weeklyRemainingPercent,
+            fiveHourResetAt: hasLiveRateLimitWindow ? liveQuota.fiveHourResetAt : logQuota.fiveHourResetAt,
+            weeklyResetAt: hasLiveRateLimitWindow ? liveQuota.weeklyResetAt : logQuota.weeklyResetAt,
             bankedResetAvailableCount: liveQuota.bankedResetAvailableCount ?? logQuota.bankedResetAvailableCount,
             bankedResets: liveQuota.bankedResetAvailableCount == nil ? logQuota.bankedResets : liveQuota.bankedResets
         )
