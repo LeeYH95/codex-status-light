@@ -223,6 +223,9 @@ public struct CodexSessionLogReader: Sendable {
             if case .quota = event {
                 return true
             }
+            if case .quotaSnapshot = event {
+                return true
+            }
             return false
         }
     }
@@ -381,15 +384,17 @@ public struct CodexSessionLogReader: Sendable {
         let occurredAt: Date
 
         init?(event: CodexParsedEvent) {
-            guard case let .quota(fiveHourUsedPercent, weeklyUsedPercent, fiveHourResetAt, weeklyResetAt, occurredAt) = event else {
+            switch event {
+            case let .quota(fiveHourUsedPercent, weeklyUsedPercent, fiveHourResetAt, weeklyResetAt, occurredAt),
+                 let .quotaSnapshot(fiveHourUsedPercent, weeklyUsedPercent, fiveHourResetAt, weeklyResetAt, occurredAt):
+                self.fiveHourUsedPercent = fiveHourUsedPercent
+                self.weeklyUsedPercent = weeklyUsedPercent
+                self.fiveHourResetAt = fiveHourResetAt
+                self.weeklyResetAt = weeklyResetAt
+                self.occurredAt = occurredAt
+            default:
                 return nil
             }
-
-            self.fiveHourUsedPercent = fiveHourUsedPercent
-            self.weeklyUsedPercent = weeklyUsedPercent
-            self.fiveHourResetAt = fiveHourResetAt
-            self.weeklyResetAt = weeklyResetAt
-            self.occurredAt = occurredAt
         }
     }
 

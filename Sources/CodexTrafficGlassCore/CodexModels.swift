@@ -111,6 +111,7 @@ public enum CodexParsedEvent: Equatable, Sendable {
     case taskAborted(Date)
     case tokenCount(input: Int?, output: Int?, at: Date)
     case quota(fiveHourUsedPercent: Double?, weeklyUsedPercent: Double?, fiveHourResetAt: Date?, weeklyResetAt: Date?, at: Date)
+    case quotaSnapshot(fiveHourUsedPercent: Double?, weeklyUsedPercent: Double?, fiveHourResetAt: Date?, weeklyResetAt: Date?, at: Date)
     case userInputNeeded(Date)
 
     public var occurredAt: Date {
@@ -124,6 +125,7 @@ public enum CodexParsedEvent: Equatable, Sendable {
              let .taskAborted(date),
              let .tokenCount(_, _, date),
              let .quota(_, _, _, _, date),
+             let .quotaSnapshot(_, _, _, _, date),
              let .userInputNeeded(date):
             date
         }

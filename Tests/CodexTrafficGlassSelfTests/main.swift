@@ -320,6 +320,27 @@ private func runSelfTests() throws {
         "premium credit records without codex windows should not parse as quota"
     )
 
+    let weeklyOnlyRateLimitEvent = parser.parse(#"{"timestamp":"2026-09-24T03:57:46Z","type":"event_msg","payload":{"type":"token_count","rate_limits":{"limit_id":"codex","primary":{"used_percent":9.0,"window_minutes":10080,"resets_at":1790745960},"secondary":null}}}"#)
+    guard let weeklyOnlyRateLimitEvent else {
+        throw SelfTestFailure(description: "weekly-only rate limits should parse")
+    }
+    let weeklyOnlyQuota = QuotaReducer().reduce(
+        current: CodexQuota(
+            fiveHourRemainingPercent: 91,
+            weeklyRemainingPercent: 91,
+            fiveHourResetAt: Date(timeIntervalSince1970: 1_785_295_560),
+            weeklyResetAt: Date(timeIntervalSince1970: 1_790_745_960)
+        ),
+        event: weeklyOnlyRateLimitEvent
+    )
+    try expect(
+        weeklyOnlyQuota.fiveHourRemainingPercent == nil
+            && weeklyOnlyQuota.fiveHourResetAt == nil
+            && weeklyOnlyQuota.weeklyRemainingPercent == 91
+            && weeklyOnlyQuota.weeklyResetAt == Date(timeIntervalSince1970: 1_790_745_960),
+        "a weekly-only rate-limit snapshot should clear stale five-hour quota"
+    )
+
     let statusReducer = StatusReducer(stallAfter: 300)
     let running = statusReducer.reduce(
         current: .empty,
