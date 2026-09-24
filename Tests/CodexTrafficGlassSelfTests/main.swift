@@ -267,6 +267,20 @@ private func runSelfTests() throws {
         BankedResetPresentation.summaryLabel(for: appServerQuota) == "重置次数 3 次",
         "banked reset summary should prefer app-server available count"
     )
+    let quotaWithoutFiveHourWindow = CodexQuotaSourceMerger.resolving(
+        logQuota: CodexQuota(
+            fiveHourRemainingPercent: 91,
+            weeklyRemainingPercent: 91,
+            fiveHourResetAt: Date(timeIntervalSince1970: 1_785_295_560),
+            weeklyResetAt: Date(timeIntervalSince1970: 1_786_826_400)
+        ),
+        liveQuota: appServerQuota
+    )
+    try expect(
+        quotaWithoutFiveHourWindow.fiveHourRemainingPercent == nil
+            && quotaWithoutFiveHourWindow.fiveHourResetAt == nil,
+        "an authoritative weekly-only app-server response should clear stale five-hour quota"
+    )
 
     let appServerCountOnlyJSON = Data(#"{"id":2,"result":{"rateLimitResetCredits":{"availableCount":3,"credits":null}}}"#.utf8)
     let countOnlyQuota = try CodexAppServerRateLimitsParser().parseQuota(from: appServerCountOnlyJSON)
