@@ -93,18 +93,7 @@ struct CodexAppServerRateLimitsReader: Sendable {
     }
 
     private var codexExecutableURL: URL? {
-        let environment = ProcessInfo.processInfo.environment
-        let candidates = [
-            environment["CODEX_EXECUTABLE"],
-            "/Applications/ChatGPT.app/Contents/Resources/codex",
-            "/opt/homebrew/bin/codex",
-            "/usr/local/bin/codex",
-            "\(NSHomeDirectory())/.local/bin/codex"
-        ].compactMap { $0 }
-
-        return candidates
-            .map(URL.init(fileURLWithPath:))
-            .first { FileManager.default.isExecutableFile(atPath: $0.path) }
+        CodexExecutableLocator.locate()
     }
 
     private func writeJSON(_ object: [String: Any], to handle: FileHandle) -> Bool {

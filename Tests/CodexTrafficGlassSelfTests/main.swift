@@ -12,6 +12,40 @@ private func expect(_ condition: @autoclosure () -> Bool, _ message: String) thr
 }
 
 private func runSelfTests() throws {
+    let bundledCodexPath = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+    try expect(
+        CodexExecutableLocator.locate(
+            environment: [:],
+            homeDirectory: "/test-user",
+            isExecutable: { $0 == bundledCodexPath }
+        )?.path == bundledCodexPath,
+        "account quota reads should find the current bundled Codex CLI when all legacy paths are absent"
+    )
+    try expect(
+        CodexExecutableLocator.locate(
+            environment: ["CODEX_EXECUTABLE": "/custom/codex"],
+            homeDirectory: "/test-user",
+            isExecutable: { $0 == "/custom/codex" || $0 == bundledCodexPath }
+        )?.path == "/custom/codex",
+        "an executable explicit Codex override should take priority over the bundled CLI"
+    )
+    try expect(
+        CodexExecutableLocator.locate(
+            environment: ["CODEX_EXECUTABLE": "/missing/codex"],
+            homeDirectory: "/test-user",
+            isExecutable: { $0 == "/opt/homebrew/bin/codex" }
+        )?.path == "/opt/homebrew/bin/codex",
+        "an unavailable Codex override should fall back to an installed CLI"
+    )
+    try expect(
+        CodexExecutableLocator.locate(
+            environment: [:],
+            homeDirectory: "/test-user",
+            isExecutable: { _ in false }
+        ) == nil,
+        "missing Codex executables should keep the shell fallback instead of returning a nonexistent path"
+    )
+
     let parser = CodexEventParser()
     let timestamp = ISO8601DateFormatter().date(from: "2026-05-30T12:00:00Z")!
     let fractionalFormatter = ISO8601DateFormatter()
