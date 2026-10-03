@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.0.8]
+
+### 修复（Fixed）
+
+- 兼容 Codex 更新后的内置命令行程序路径，恢复账户额度和可用重置卡的读取；有重置卡时重新显示重置次数入口。
+
+### 验证（Verification）
+
+- 新版内置 Codex 路径、显式覆盖路径和缺失程序回退的回归自测通过。
+- CodexTrafficGlassSelfTests 与 Swift 构建通过。
+
 ## [1.0.7]
 
 ### 修复（Fixed）
