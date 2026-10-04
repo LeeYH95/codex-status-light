@@ -22,6 +22,9 @@ struct TrafficGlassRootView: View {
         HStack(alignment: .top, spacing: 10) {
             VStack(spacing: CodexPanelVisualMetrics.quotaGaugeSpacing) {
                 TrafficLightColumn(snapshot: store.snapshot)
+                    .overlay {
+                        WindowDragArea()
+                    }
                     .overlay(alignment: .trailing) {
                         if !store.isExpanded {
                             Button {
@@ -42,6 +45,9 @@ struct TrafficGlassRootView: View {
                     }
 
                 CollapsedQuotaReservoir(quota: store.snapshot.quota)
+                    .overlay {
+                        WindowDragArea()
+                    }
             }
             .frame(
                 width: 78,
