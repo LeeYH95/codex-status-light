@@ -50,3 +50,7 @@ and uploads the zip. The release notes come from the matching section in `CHANGE
 - Right side: expandable frosted glass panel.
 - Data source: local Codex session JSONL files under `~/.codex/sessions`.
 - Quota source: the current Codex app-server response, with recent session-log tails as a fallback.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
