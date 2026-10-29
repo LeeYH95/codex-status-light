@@ -4,9 +4,90 @@
 
 ## [Unreleased]
 
+## [1.0.9]
+
+### 修复（Fixed）
+
+- 恢复悬浮 HUD 拖动：按住顶部横线、红绿灯区域或额度球移动即可调整位置，折叠和展开状态都可使用。
+
+### 验证（Verification）
+
+- 真实运行态核对拖动前后窗口坐标，并验证展开按钮与重置卡详情仍可使用。
+- CodexTrafficGlassSelfTests 与 Swift 构建通过。
+
+## [1.0.8]
+
+### 修复（Fixed）
+
+- 兼容 Codex 更新后的内置命令行程序路径，恢复账户额度和可用重置卡的读取；有重置卡时重新显示重置次数入口。
+
+### 验证（Verification）
+
+- 新版内置 Codex 路径、显式覆盖路径和缺失程序回退的回归自测通过。
+- CodexTrafficGlassSelfTests 与 Swift 构建通过。
+
+## [1.0.7]
+
+### 修复（Fixed）
+
+- 额度日志现在根据实际窗口长度识别 5 小时和 1 周额度；仅有周额度的套餐不再被误显示为“5 小时”。
+
+### 验证（Verification）
+
+- CodexTrafficGlassSelfTests 通过。
+- Swift 构建通过。
+
+## [1.0.6]
+
+### 修复（Fixed）
+
+- 实时账户仅返回周额度时，不再被旧 session 日志中的 5 小时额度覆盖；展开面板会隐藏 5 小时行，悬浮球显示周额度。
+
+### 验证（Verification）
+
+- CodexTrafficGlassSelfTests 通过。
+- Swift 构建通过。
+
+## [1.0.5]
+
+### 修复（Fixed）
+
+- 当账户没有 5 小时额度时，展开面板不再显示 5 小时额度行；左下悬浮球自动显示周额度。
+- 账户有 5 小时额度时，继续优先显示 5 小时额度，不影响原有双额度展示。
+
+### 验证（Verification）
+
+- CodexTrafficGlassSelfTests 通过。
+- Swift 构建通过。
+
+## [1.0.4]
+
+### 修复（Fixed）
+
+- 折叠态的小悬浮额度球现在显示 5 小时额度，不再误显示每周额度。
+
+### 验证（Verification）
+
+- CodexTrafficGlassSelfTests 通过。
+- Swift 构建通过。
+
+## [1.0.3]
+
+### 调整（Changed）
+
+- 展开面板的额度卡现在同时显示 5 小时和 1 周剩余额度、各自的重置时间与进度条。
+
+### 验证（Verification）
+
+- CodexTrafficGlassSelfTests 通过。
+- Swift 构建通过。
+
+## [1.0.2]
+
 ### 修复（Fixed）
 
 - 额度日志中的 Unix 秒数格式重置时间现在可正确解析，不会丢失 5 小时或每周重置时间。
+- 当可用重置次数为 0 时，展开面板不再显示“重置次数 0 次”入口。
 
 ### 验证（Verification）
 

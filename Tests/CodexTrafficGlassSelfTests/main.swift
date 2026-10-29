@@ -12,6 +12,40 @@ private func expect(_ condition: @autoclosure () -> Bool, _ message: String) thr
 }
 
 private func runSelfTests() throws {
+    let bundledCodexPath = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+    try expect(
+        CodexExecutableLocator.locate(
+            environment: [:],
+            homeDirectory: "/test-user",
+            isExecutable: { $0 == bundledCodexPath }
+        )?.path == bundledCodexPath,
+        "account quota reads should find the current bundled Codex CLI when all legacy paths are absent"
+    )
+    try expect(
+        CodexExecutableLocator.locate(
+            environment: ["CODEX_EXECUTABLE": "/custom/codex"],
+            homeDirectory: "/test-user",
+            isExecutable: { $0 == "/custom/codex" || $0 == bundledCodexPath }
+        )?.path == "/custom/codex",
+        "an executable explicit Codex override should take priority over the bundled CLI"
+    )
+    try expect(
+        CodexExecutableLocator.locate(
+            environment: ["CODEX_EXECUTABLE": "/missing/codex"],
+            homeDirectory: "/test-user",
+            isExecutable: { $0 == "/opt/homebrew/bin/codex" }
+        )?.path == "/opt/homebrew/bin/codex",
+        "an unavailable Codex override should fall back to an installed CLI"
+    )
+    try expect(
+        CodexExecutableLocator.locate(
+            environment: [:],
+            homeDirectory: "/test-user",
+            isExecutable: { _ in false }
+        ) == nil,
+        "missing Codex executables should keep the shell fallback instead of returning a nonexistent path"
+    )
+
     let parser = CodexEventParser()
     let timestamp = ISO8601DateFormatter().date(from: "2026-05-30T12:00:00Z")!
     let fractionalFormatter = ISO8601DateFormatter()
@@ -157,8 +191,8 @@ private func runSelfTests() throws {
         "banked reset details should call out the earliest expiration"
     )
     try expect(
-        BankedResetPresentation.summaryLabel(for: CodexQuota()) == "重置次数 0 次",
-        "empty banked reset entry should make the zero state explicit"
+        BankedResetPresentation.summaryLabel(for: CodexQuota()).isEmpty,
+        "zero available resets should hide the expanded-panel reset entry"
     )
 
     try expect(
@@ -267,6 +301,20 @@ private func runSelfTests() throws {
         BankedResetPresentation.summaryLabel(for: appServerQuota) == "重置次数 3 次",
         "banked reset summary should prefer app-server available count"
     )
+    let quotaWithoutFiveHourWindow = CodexQuotaSourceMerger.resolving(
+        logQuota: CodexQuota(
+            fiveHourRemainingPercent: 91,
+            weeklyRemainingPercent: 91,
+            fiveHourResetAt: Date(timeIntervalSince1970: 1_785_295_560),
+            weeklyResetAt: Date(timeIntervalSince1970: 1_786_826_400)
+        ),
+        liveQuota: appServerQuota
+    )
+    try expect(
+        quotaWithoutFiveHourWindow.fiveHourRemainingPercent == nil
+            && quotaWithoutFiveHourWindow.fiveHourResetAt == nil,
+        "an authoritative weekly-only app-server response should clear stale five-hour quota"
+    )
 
     let appServerCountOnlyJSON = Data(#"{"id":2,"result":{"rateLimitResetCredits":{"availableCount":3,"credits":null}}}"#.utf8)
     let countOnlyQuota = try CodexAppServerRateLimitsParser().parseQuota(from: appServerCountOnlyJSON)
@@ -276,6 +324,16 @@ private func runSelfTests() throws {
     )
 
     let currentQuota = CodexQuota(fiveHourRemainingPercent: 64, weeklyRemainingPercent: 20)
+    try expect(
+        CollapsedQuotaReservoirPresentation.remainingPercent(for: currentQuota) == 64,
+        "collapsed quota reservoir should use the 5-hour remaining percent"
+    )
+    try expect(
+        CollapsedQuotaReservoirPresentation.remainingPercent(
+            for: CodexQuota(weeklyRemainingPercent: 20)
+        ) == 20,
+        "collapsed quota reservoir should fall back to weekly quota when 5-hour quota is unavailable"
+    )
     let unchangedQuota = QuotaReducer().reduce(
         current: currentQuota,
         event: .quota(fiveHourUsedPercent: nil, weeklyUsedPercent: nil, fiveHourResetAt: nil, weeklyResetAt: nil, at: Date())
@@ -294,6 +352,27 @@ private func runSelfTests() throws {
     try expect(
         parser.parse(#"{"timestamp":"2026-05-30T12:03:00Z","type":"event_msg","payload":{"type":"token_count","rate_limits":{"limit_id":"premium","primary":null,"secondary":null,"credits":{"has_credits":false}}}}"#) == nil,
         "premium credit records without codex windows should not parse as quota"
+    )
+
+    let weeklyOnlyRateLimitEvent = parser.parse(#"{"timestamp":"2026-09-24T03:57:46Z","type":"event_msg","payload":{"type":"token_count","rate_limits":{"limit_id":"codex","primary":{"used_percent":9.0,"window_minutes":10080,"resets_at":1790745960},"secondary":null}}}"#)
+    guard let weeklyOnlyRateLimitEvent else {
+        throw SelfTestFailure(description: "weekly-only rate limits should parse")
+    }
+    let weeklyOnlyQuota = QuotaReducer().reduce(
+        current: CodexQuota(
+            fiveHourRemainingPercent: 91,
+            weeklyRemainingPercent: 91,
+            fiveHourResetAt: Date(timeIntervalSince1970: 1_785_295_560),
+            weeklyResetAt: Date(timeIntervalSince1970: 1_790_745_960)
+        ),
+        event: weeklyOnlyRateLimitEvent
+    )
+    try expect(
+        weeklyOnlyQuota.fiveHourRemainingPercent == nil
+            && weeklyOnlyQuota.fiveHourResetAt == nil
+            && weeklyOnlyQuota.weeklyRemainingPercent == 91
+            && weeklyOnlyQuota.weeklyResetAt == Date(timeIntervalSince1970: 1_790_745_960),
+        "a weekly-only rate-limit snapshot should clear stale five-hour quota"
     )
 
     let statusReducer = StatusReducer(stallAfter: 300)
@@ -545,6 +624,14 @@ private func runSelfTests() throws {
     try expect(CodexPanelVisualMetrics.moduleSpacing == 8, "status and quota modules should use the same 8 point gap")
     try expect(CodexPanelVisualMetrics.quotaCardRowHeight == 96, "quota cards should reserve their full intrinsic height instead of overflowing the panel")
     try expect(CodexPanelVisualMetrics.quotaCardVerticalInset == 12, "quota card content should fit inside its assigned layout row")
+    try expect(
+        CodexPanelVisualMetrics.quotaWindowSpacing == 4,
+        "two quota windows should use a compact, tokenized vertical gap"
+    )
+    try expect(
+        CodexPanelVisualMetrics.quotaWindowProgressHeight == 5,
+        "two quota windows should use a compact, tokenized progress height"
+    )
     try expect(CodexPanelVisualMetrics.headerHeight == 50, "panel header should use an explicit layout height")
     try expect(
         CodexPanelMotion.expandedPanelHeight == CodexPanelVisualMetrics.expandedPanelHeight,

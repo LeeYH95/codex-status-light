@@ -111,6 +111,35 @@ public struct CodexEventParser: Sendable {
                 return nil
             }
 
+            let windows = [primary, secondary].compactMap { $0 }
+            if windows.contains(where: { int($0["window_minutes"]) != nil }) {
+                var fiveHourUsedPercent: Double?
+                var weeklyUsedPercent: Double?
+                var fiveHourResetAt: Date?
+                var weeklyResetAt: Date?
+
+                for window in windows {
+                    switch int(window["window_minutes"]) {
+                    case 300:
+                        fiveHourUsedPercent = double(window["used_percent"])
+                        fiveHourResetAt = epochDate(from: window["resets_at"])
+                    case 10_080:
+                        weeklyUsedPercent = double(window["used_percent"])
+                        weeklyResetAt = epochDate(from: window["resets_at"])
+                    default:
+                        continue
+                    }
+                }
+
+                return .quotaSnapshot(
+                    fiveHourUsedPercent: fiveHourUsedPercent,
+                    weeklyUsedPercent: weeklyUsedPercent,
+                    fiveHourResetAt: fiveHourResetAt,
+                    weeklyResetAt: weeklyResetAt,
+                    at: at
+                )
+            }
+
             return .quota(
                 fiveHourUsedPercent: double(primary?["used_percent"]),
                 weeklyUsedPercent: double(secondary?["used_percent"]),

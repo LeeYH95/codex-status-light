@@ -12,7 +12,7 @@ public struct StatusReducer: Sendable {
     public func reduce(current: CodexStatusSnapshot, event: CodexParsedEvent, now: Date = Date()) -> CodexStatusSnapshot {
         var snapshot = current
         switch event {
-        case .quota:
+        case .quota, .quotaSnapshot:
             snapshot.quota = QuotaReducer().reduce(current: snapshot.quota, event: event)
             return refresh(current: snapshot, now: now)
         case .tokenCount:
@@ -71,7 +71,7 @@ public struct StatusReducer: Sendable {
             snapshot.title = "空闲"
             snapshot.detail = "任务已取消"
             snapshot.confidence = 0.8
-        case .tokenCount, .quota:
+        case .tokenCount, .quota, .quotaSnapshot:
             break
         case .userInputNeeded:
             snapshot.state = .waiting

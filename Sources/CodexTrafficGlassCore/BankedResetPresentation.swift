@@ -2,7 +2,12 @@ import Foundation
 
 public enum BankedResetPresentation {
     public static func summaryLabel(for quota: CodexQuota) -> String {
-        "重置次数 \(quota.bankedResetAvailableCount ?? quota.bankedResets.count) 次"
+        let availableCount = quota.bankedResetAvailableCount ?? quota.bankedResets.count
+        guard availableCount != 0 else {
+            return ""
+        }
+
+        return "重置次数 \(availableCount) 次"
     }
 
     public static func sortedResets(for quota: CodexQuota) -> [CodexBankedReset] {

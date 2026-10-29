@@ -65,7 +65,7 @@ public struct GlobalStatusAggregator: Sendable {
     private func containsStatusEvent(_ events: [CodexParsedEvent]) -> Bool {
         events.contains { event in
             switch event {
-            case .quota, .tokenCount:
+            case .quota, .quotaSnapshot, .tokenCount:
                 false
             case .taskStarted, .reasoning, .functionCall, .functionOutput, .finalAnswer, .taskComplete, .taskAborted, .userInputNeeded:
                 true
